@@ -1,0 +1,63 @@
+```
+# CMake build directory
+/build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Qt generated files
+*.moc
+*.qrc
+*.rcc
+*.uic
+
+# QtCreator specific files
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.qmlproject.user
+*.qmlproject.user.*
+*.creator.user
+*.creator.user.*
+*.creator.shared.*
+*.creator.*
+
+# CLion specific files
+.idea/
+cmake-build-*/
+
+# General files
+*.obj
+*.o
+*.so
+*.a
+*.lib
+*.dll
+*.exe
+*.out
+*.app
+*.iws
+*.iml
+*.ipr
+*.log
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.swn
+*.bak
+*.old
+*.orig
+*.rej
+*.sublime-project
+*.sublime-workspace

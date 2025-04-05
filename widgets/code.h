@@ -1,0 +1,89 @@
+#ifndef CODE_EDIT_H
+#define CODE_EDIT_H
+
+#include <QPlainTextEdit>
+
+#include "../ide/project.h"
+#include "fileTree.h"
+
+class WelcomeWidget : public QPlainTextEdit {
+    Q_OBJECT
+    void setup();
+
+public:
+    explicit WelcomeWidget(QWidget *parent);
+};
+
+class LineNumberArea;
+
+class CodeEditWidget : public QPlainTextEdit {
+    friend class LineNumberArea;
+
+    Q_OBJECT
+
+    FileInfo file;
+    QString buffer;
+    QWidget *lineNumberArea;
+
+    void setup();
+
+private slots:
+    /* Adapt the viewport margins */
+    void adaptViewport();
+    /* Update the line number area when the content changes */
+    void updateLineNumberArea(const QRect &rect, int dy);
+    /* Highlight the line where the cursor is */
+    void highlightLine();
+
+    // friend functions for line number area
+    int LNAWidth() const;
+    void LNAEvent(QPaintEvent *event) const;
+
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+
+public:
+    CodeEditWidget(QString filename, QWidget *parent);
+
+    static QFont font;
+    const FileInfo &getFile() const;
+
+    /* Read the file content and display it */
+    void readFile();
+    /* Save the file content to the file */
+    void saveFile();
+    /* Check if the content is modified, if so, ask for save */
+    bool askForSave();
+};
+
+class CodeTabWidget : public QTabWidget {
+    Q_OBJECT
+
+    void setup();
+    CodeEditWidget *curEdit() const;
+    CodeEditWidget *editAt(int index) const;
+
+    /* Add a welcome widget */
+    void welcome();
+    /* Add a code edit widget for the given file */
+    void addCodeEdit(const QString &filename);
+    /* Check if the file is opened, if so, remove it */
+    void checkRemoveCodeEdit(const QString &filename);
+
+public slots:
+    /* Handle file operations (from file tree) */
+    void handleFileOperation(const QString &filename, FileOperation operation);
+    /* Remove the code edit widget at the given index */
+    void removeCodeEdit(int index);
+    /* Ask the user before removing the code edit widget */
+    void removeCodeEditRequested(int index);
+
+public:
+    explicit CodeTabWidget(QWidget *parent);
+
+    void clearAll();
+    FileInfo currentFile() const;
+    void save() const;
+};
+
+#endif // CODE_EDIT_H
