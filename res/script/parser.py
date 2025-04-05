@@ -18,6 +18,12 @@ with open(file, 'r', encoding='utf-8') as f:
 
 soup = BeautifulSoup(content, 'html.parser')
 
+title = soup.find('div', id='pageTitle').find('h2')
+if title is None:
+    raise Exception("No title found in the file")
+
+title = title.text.strip()
+
 content = soup.find('dl', class_='problem-content')
 if content is None:
     raise Exception("No problem content found in the file")
@@ -28,5 +34,7 @@ pre { background-color: #222222;}
 </style>
 """
 
-print(CSS)
-print(content.prettify())
+html = CSS + str(content)
+
+print(title)
+print(html)

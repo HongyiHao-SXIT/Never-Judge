@@ -16,7 +16,7 @@ find_package(QCoro6 REQUIRED COMPONENTS Core Network)
 
 set(PROJECT_SOURCES
         util/file.cpp
-        oj/web.cpp
+        web/oj.cpp
         res/resource.qrc
         ide/project.cpp
         ide/cmd.cpp

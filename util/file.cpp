@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QStandardPaths>
+#include <qcoro/qcoroprocess.h>
 
 QFile loadRes(const QString &path) { return QFile(":/res/" + path); }
 
@@ -59,34 +60,27 @@ ScriptResult ScriptResult::fail() { return {false}; }
 
 
 QCoro::Task<ScriptResult> runPythonScript(QFile &script, QStringList args) {
-    QString id = TempFiles::genID(script.fileName());
-    auto file = TempFiles::cache(id);
-    if (!file) {
-        if (!script.open(QIODevice::ReadOnly)) {
-            qWarning() << "Failed to read script: " << script.fileName();
-            co_return ScriptResult::fail();
-        }
-        QTextStream in(&script);
-        QString content = in.readAll();
-        script.close();
-        file = TempFiles::create(id, content);
-    }
-    file->close();
-
-    auto process = std::make_unique<QProcess>();
-    process->start("python3", QStringList() << file->fileName() << args);
-    if (!process->waitForStarted()) {
-        qWarning() << "Failed to start script: " << process->errorString();
+    if (!script.open(QIODevice::ReadOnly)) {
+        qWarning() << "Failed to read script: " << script.fileName();
         co_return ScriptResult::fail();
     }
-    if (!process->waitForFinished()) {
-        qWarning() << "Script cost too long time: " << process->errorString();
+    QTextStream in(&script);
+    QString content = in.readAll();
+
+    auto process = QProcess();
+    // process->start("python3", QStringList() << file->fileName() << args);
+    co_await qCoro(process).start("python3", QStringList() << "-c" << content << args);
+    if (!co_await qCoro(process).waitForStarted()) {
+        qWarning() << "Failed to start script: " << process.errorString();
+        co_return ScriptResult::fail();
+    }
+    if (!co_await qCoro(process).waitForFinished()) {
+        qWarning() << "Script cost too long time: " << process.errorString();
         co_return ScriptResult::fail();
     }
 
-    QString stdOut = process->readAllStandardOutput();
-    QString stdErr = process->readAllStandardError();
-    qDebug() << "stdout:" << stdErr;
-    int exitCode = process->exitCode();
+    QString stdOut = process.readAllStandardOutput();
+    QString stdErr = process.readAllStandardError();
+    int exitCode = process.exitCode();
     co_return {true, exitCode, stdOut, stdErr};
 }

@@ -9,6 +9,7 @@ int main(int argc, char *argv[]) {
     auto *window = new IDEMainWindow(argc, argv);
 
 #ifndef NDEBUG
+    // clear the temp file cache in case of a crash
     TempFiles::clearCache();
 #endif
 

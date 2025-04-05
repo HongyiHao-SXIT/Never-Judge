@@ -37,7 +37,7 @@ QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString 
 LeftIconNavigateWidget::LeftIconNavigateWidget(QWidget *parent) : IconNavigateWidget(parent) { addIcons(); }
 
 void LeftIconNavigateWidget::addIcons() {
-    QPushButton *fileTreeBtn = newIcon("folder", "文件树");
+    QPushButton *fileTreeBtn = newIcon("folder", tr("文件树"));
     fileTreeBtn->setChecked(true);
     connect(fileTreeBtn, &QPushButton::toggled, this, &LeftIconNavigateWidget::onToggleFileTree);
 }
@@ -47,7 +47,7 @@ void LeftIconNavigateWidget::onToggleFileTree(bool checked) { emit toggleFileTre
 RightIconNavigateWidget::RightIconNavigateWidget(QWidget *parent) : IconNavigateWidget(parent) { addIcons(); }
 
 void RightIconNavigateWidget::addIcons() {
-    QPushButton *previewBtn = newIcon("search", "显示预览");
+    QPushButton *previewBtn = newIcon("search", tr("显示预览"));
     connect(previewBtn, &QPushButton::toggled, this, &RightIconNavigateWidget::onTogglePreview);
 }
 

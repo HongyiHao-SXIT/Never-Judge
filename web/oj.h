@@ -10,14 +10,20 @@ class Crawler {
     const QUrl url;
 
 public:
-    explicit Crawler(const QString &url);
+    explicit Crawler(QUrl url);
     /* Returns the downloaded content or an error message */
     QCoro::Task<std::expected<QByteArray, QString>> crawl() const;
 };
 
+struct OJProblem {
+    QString title;
+    QString content;
+};
+
 class OJParser {
 public:
-    QCoro::Task<std::expected<QString, QString>> parse(const QByteArray &content) const;
+    static QCoro::Task<std::expected<OJProblem, QString>> parseProblem(const QByteArray &html);
+    static QCoro::Task<std::expected<QStringList, QString>> parseProblemUrlsInMatch(const QByteArray &content);
 };
 
 

@@ -119,6 +119,33 @@ void CodeEditWidget::highlightLine() {
     setExtraSelections(selections);
 }
 
+// FIXME: I'm not sure about the code...
+void CodeEditWidget::highlightCode(int line1, int col1, int line2, int col2, QColor color) {
+    QTextCursor cursor = textCursor();
+    cursor.setPosition(QTextCursor::Start);
+    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, line1);
+    cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, col1);
+
+    cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
+
+    if (line1 == line2) {
+        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, col2);
+    } else {
+        for (int i = line1 + 1; i < line2; ++i) {
+            cursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor);
+            cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
+        }
+        cursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor);
+        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, col2);
+    }
+
+    QTextCharFormat format;
+    format.setBackground(color);
+
+    cursor.mergeCharFormat(format);
+    setTextCursor(cursor);
+}
+
 #define MAX_BUFFER_SIZE 1024 * 1024
 
 void CodeEditWidget::readFile() {

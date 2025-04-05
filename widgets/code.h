@@ -34,6 +34,8 @@ private slots:
     void updateLineNumberArea(const QRect &rect, int dy);
     /* Highlight the line where the cursor is */
     void highlightLine();
+    /* Highlight the code between the given lines */
+    void highlightCode(int line1, int col1, int line2, int col2, QColor color);
 
     // friend functions for line number area
     int LNAWidth() const;

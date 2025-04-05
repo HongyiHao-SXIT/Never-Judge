@@ -1,17 +1,38 @@
 #ifndef OPENJUDGE_H
 #define OPENJUDGE_H
 
-#include <QTextEdit>
 #include <QLayout>
+#include <QTextEdit>
+#include <QLabel>
+#include <expected>
 #include <qcorotask.h>
+
+#include "../web/oj.h"
+#include "icon.h"
+
+class PreviewTextWidget;
 
 class OpenJudgePreviewWidget : public QWidget {
     Q_OBJECT
+
+    QLabel *titleLabel;
+    IconPushButton *lastBtn;
+    IconPushButton *nextBtn;
+
+    QWidget *emptyWidget;
+    QLayout *textLayout;
     int curIndex;
-    QLayout* textLayout;
 
     void setup();
-    QTextEdit * curPreview() const;
+    void reset();
+    void refresh() const;
+    PreviewTextWidget *curPreview() const;
+    void warning(const QString &message);
+    static QCoro::Task<std::expected<OJProblem, QString>> downloadAndParse(const QUrl &url);
+
+signals:
+    void previewPagesReset();
+    void currentIndexChanged();
 
 public slots:
     QCoro::Task<> downloadOJ();
@@ -22,8 +43,6 @@ public slots:
 public:
     explicit OpenJudgePreviewWidget(QWidget *parent = nullptr);
     void clear();
-    void setText(const QString &text) const;
-    void setHtml(const QString &html) const;
 };
 
 #endif // OPENJUDGE_H
