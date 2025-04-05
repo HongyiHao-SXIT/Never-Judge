@@ -1,5 +1,6 @@
+#include "widgets/window.h"
+
 #include <QApplication>
-#include "IDEMainWindow.h"
 #include "util/file.h"
 
 int main(int argc, char *argv[]) {

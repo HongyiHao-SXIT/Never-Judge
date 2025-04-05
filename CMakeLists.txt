@@ -28,7 +28,7 @@ set(PROJECT_SOURCES
         widgets/fileTree.cpp
         widgets/terminal.cpp
         widgets/menu.cpp
-        IDEMainWindow.cpp
+        widgets/window.cpp
         main.cpp
 )
 qt_add_executable(NeverJudge

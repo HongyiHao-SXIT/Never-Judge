@@ -3,13 +3,13 @@
 
 #include <QMainWindow>
 
-#include "ide/ide.h"
-#include "widgets/code.h"
-#include "widgets/fileTree.h"
-#include "widgets/iconNav.h"
-#include "widgets/menu.h"
-#include "widgets/preview.h"
-#include "widgets/terminal.h"
+#include "../ide/ide.h"
+#include "code.h"
+#include "fileTree.h"
+#include "iconNav.h"
+#include "menu.h"
+#include "preview.h"
+#include "terminal.h"
 
 class IDEMainWindow : public QMainWindow {
     Q_OBJECT
