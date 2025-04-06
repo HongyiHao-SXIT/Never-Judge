@@ -27,7 +27,7 @@
         "(call_expression function: (field_expression (field_identifier) @function))",
         "(call_expression function: (qualified_identifier (identifier) @function))"
       ],
-      "foreground": "#ECECBA"
+      "foreground": "#F0F0BA"
     },
     {
       "language": "python",
@@ -36,7 +36,7 @@
         "(call function: (attribute attribute: (identifier) @function))",
         "(function_definition (identifier) @function)"
       ],
-      "foreground": "#ECECBA"
+      "foreground": "#F0F0BA"
     },
     {
       "language": [
@@ -54,12 +54,6 @@
       "language": "cpp",
       "pattern": "[(auto) \"catch\" \"class\" \"delete\" \"explicit\" \"friend\" \"mutable\" \"namespace\" \"new\" \"operator\" \"private\" \"protected\" \"public\"  \"template\" \"throw\" \"try\" \"typename\" \"using\" ] @keyword",
       "foreground": "#D596D0"
-    },
-    {
-      "language": "cpp",
-      "pattern": "(this) @this",
-      "foreground": "#D596D0",
-      "style": "italic"
     },
     {
       "language": "python",
@@ -153,6 +147,11 @@
       "foreground": "#5ED9C0"
     },
     {
+      "language": "cpp",
+      "pattern": "(namespace_identifier) @namespace",
+      "foreground": "#5ED9C0"
+    },
+    {
       "language": "python",
       "pattern": [
         "(class_definition (identifier) @class)",
@@ -162,11 +161,6 @@
       "foreground": "#5ED9C0"
     },
     {
-      "language": "cpp",
-      "pattern": "(namespace_identifier) @namespace",
-      "foreground": "#94EB75"
-    },
-    {
       "language": "python",
       "pattern": [
         "(import_statement (dotted_name) @module)",
@@ -174,6 +168,12 @@
         "(import_statement (aliased_import [(dotted_name) alias: (identifier)] @module))"
       ],
       "foreground": "#94EB75"
+    },
+    {
+      "language": "cpp",
+      "pattern": "(this) @this",
+      "foreground": "#C9BAFF",
+      "style": "italic"
     },
     {
       "language": "python",

@@ -1,11 +1,12 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QKeySequence>
-#include <QLineEdit>
 #include <QToolButton>
 #include <QWidgetAction>
 
 #include "menu.h"
+
+#include <QLabel>
 
 MenuBarWidget::MenuBarWidget(QWidget *parent) : QMenuBar(parent) { setup(); }
 
@@ -31,8 +32,13 @@ void MenuBarWidget::setup() {
 
     // OJ menu
     QMenu *ojMenu = this->addMenu("OpenJudge");
+    newAction(ojMenu, "登录", QKeySequence(), &MenuBarWidget::onLoginOJ);
     newAction(ojMenu, "下载", QKeySequence(), &MenuBarWidget::onDownloadOJ);
     newAction(ojMenu, "批量下载", QKeySequence(), &MenuBarWidget::onBatchDownloadOJ);
+    newAction(ojMenu, "提交", QKeySequence(), &MenuBarWidget::onSubmitOJ);
+    // TODO: Show user here
+    // auto label = new QLabel("Welcome", this);
+    // this->setCornerWidget(label);
 }
 
 void MenuBarWidget::onSave() { emit saveFile(); }
@@ -40,7 +46,6 @@ void MenuBarWidget::onSave() { emit saveFile(); }
 void MenuBarWidget::onOpenFolder() {
     QString folderPath =
             QFileDialog::getExistingDirectory(this, tr("选择项目"), QDir::homePath(), QFileDialog::ShowDirsOnly);
-
     if (!folderPath.isEmpty()) {
         emit openFolder(folderPath);
     }
@@ -50,6 +55,10 @@ void MenuBarWidget::onNewFile() { emit newFile(); }
 
 void MenuBarWidget::onNewFolder() { emit newFolder(); }
 
+void MenuBarWidget::onLoginOJ() { emit loginOJ(); }
+
 void MenuBarWidget::onDownloadOJ() { emit downloadOJ(); }
 
 void MenuBarWidget::onBatchDownloadOJ() { emit batchDownloadOJ(); }
+
+void MenuBarWidget::onSubmitOJ() { emit submitOJ(); }

@@ -13,6 +13,7 @@ IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWin
     codeTab = new CodeTabWidget(this);
     menuBar = new MenuBarWidget(this);
     ojPreview = new OpenJudgePreviewWidget(this);
+    footer = new FooterWidget(this);
     ojPreview->setVisible(false);
 
     setup();
@@ -23,7 +24,9 @@ IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWin
 }
 
 void IDEMainWindow::setup() {
-    this->setWindowTitle(tr("Simple IDE"));
+    QIcon::setThemeName("oxygen");
+
+    this->setWindowTitle(tr("Never Judge"));
     this->setMinimumSize(1366, 768);
     this->setMenuBar(menuBar);
 
@@ -47,11 +50,14 @@ void IDEMainWindow::setup() {
     vSplitter->addWidget(terminal);
     vSplitter->setStretchFactor(0, 3);
     vSplitter->setStretchFactor(1, 1);
-
     editLayout->addWidget(vSplitter);
 
+    auto *fullLayout = new QVBoxLayout(this);
+    fullLayout->addLayout(mainLayout);
+    fullLayout->addWidget(footer);
+
     auto *centralWidget = new QWidget(this);
-    centralWidget->setLayout(mainLayout);
+    centralWidget->setLayout(fullLayout);
     this->setCentralWidget(centralWidget);
 }
 
@@ -65,17 +71,18 @@ void IDEMainWindow::connectSignals() {
             [this] { fileTree->createNewFile(ide->curProject().getRoot()); });
     connect(menuBar, &MenuBarWidget::newFolder, fileTree,
             [this] { fileTree->createNewFolder(ide->curProject().getRoot()); });
-
     connect(menuBar, &MenuBarWidget::saveFile, codeTab, &CodeTabWidget::save);
     connect(menuBar, &MenuBarWidget::openFolder, this, &IDEMainWindow::openFolder);
     connect(fileTree, &FileTreeWidget::operateFile, codeTab, &CodeTabWidget::handleFileOperation);
 
     // Running
-    connect(menuBar, &MenuBarWidget::runCode, this, &IDEMainWindow::runCurrentFile);
+    connect(menuBar, &MenuBarWidget::runCode, this, &IDEMainWindow::runCurrentCode);
 
     // OJ
     connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview, &OpenJudgePreviewWidget::downloadOJ);
     connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview, &OpenJudgePreviewWidget::batchDownloadOJ);
+    connect(menuBar, &MenuBarWidget::loginOJ, ojPreview, &OpenJudgePreviewWidget::loginOJ);
+    connect(menuBar, &MenuBarWidget::submitOJ, this, &IDEMainWindow::submitCurrentCode);
 }
 
 void IDEMainWindow::openFolder(const QString &folder) const {
@@ -87,32 +94,33 @@ void IDEMainWindow::openFolder(const QString &folder) const {
     terminal->setProject(&ide->curProject());
 }
 
-void IDEMainWindow::runCurrentFile() const {
+void IDEMainWindow::runCurrentCode() const {
     FileInfo file = codeTab->currentFile();
 
     if (!file.isValid()) {
-        QMessageBox msgBox;
-        msgBox.setText(tr("不存在的文件或非法文件"));
-        msgBox.setInformativeText(tr("请先打开一个文件"));
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setDefaultButton(QMessageBox::Ok);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.setWindowTitle(tr("错误"));
-        msgBox.exec();
+        QMessageBox::warning(menuBar, tr("错误"), tr("不存在的文件或非法文件"));
         return;
     }
     if (file.getLanguage() == Language::UNKNOWN) {
-        QMessageBox msgBox;
-        msgBox.setText(tr("不支持运行的文件类型"));
-        msgBox.setInformativeText(tr("仅支持 C/C++/CMAKE/Python 文件"));
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setDefaultButton(QMessageBox::Ok);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.setWindowTitle(tr("错误"));
-        msgBox.exec();
+        QMessageBox::warning(menuBar, tr("错误"), tr("不支持运行的文件类型"));
         return;
     }
 
     codeTab->save(); // save the current file before running
     terminal->runCmd(Command::runFile(file));
+}
+
+void IDEMainWindow::submitCurrentCode() const {
+    auto edit = codeTab->curEdit();
+    if (!edit) {
+        QMessageBox::warning(menuBar, tr("错误"), tr("你还没有打开一个项目！"));
+        return;
+    }
+    // get the text on the current edit
+    QString code = edit->toPlainText();
+    if (code.isEmpty()) {
+        QMessageBox::warning(menuBar, tr("错误"), tr("代码不能为空"));
+        return;
+    }
+    ojPreview->submit(code);
 }

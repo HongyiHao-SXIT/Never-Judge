@@ -47,16 +47,4 @@ signals:
     void configChanged(const QJsonObject &newConfig);
 };
 
-
-struct ScriptResult {
-    bool success;
-    int exitCode;
-    QString stdOut;
-    QString stdErr;
-
-    static ScriptResult fail();
-};
-
-QCoro::Task<ScriptResult> runPythonScript(QFile &script, QStringList args);
-
 #endif // FILE_H

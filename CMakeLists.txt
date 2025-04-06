@@ -13,19 +13,22 @@ find_package(PkgConfig REQUIRED)
 # NOTE: We use tree-sitter-c/cpp/python here
 pkg_check_modules(TREE_SITTER REQUIRED tree-sitter)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Svg Network)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Svg Network Core5Compat) # use qt5 core for QTextCodec
 find_package(QTermWidget6 REQUIRED)
 find_package(QCoro6 REQUIRED COMPONENTS Core Network)
 
 set(PROJECT_SOURCES
         util/file.cpp
-        web/oj.cpp
+        util/script.cpp
+        web/crawl.cpp
+        web/parse.cpp
         res/resource.qrc
         ide/project.cpp
         ide/cmd.cpp
         ide/ide.cpp
         ide/highlighter.cpp
         widgets/icon.cpp
+        widgets/footer.cpp
         widgets/iconNav.cpp
         widgets/preview.cpp
         widgets/code.cpp
@@ -42,7 +45,7 @@ qt_add_executable(NeverJudge
 
 target_include_directories(NeverJudge PRIVATE ${TREE_SITTER_INCLUDE_LIBRARIES})
 target_link_libraries(NeverJudge PRIVATE
-        qtermwidget6 Qt6::Widgets Qt6::Svg Qt6::Network QCoro6::Core QCoro6::Network
+        qtermwidget6 Qt6::Widgets Qt6::Svg Qt6::Network Qt6::Core5Compat QCoro6::Core QCoro6::Network
         ${TREE_SITTER_LIBRARIES})
 set_target_properties(NeverJudge PROPERTIES
         ${BUNDLE_ID_OPTION}

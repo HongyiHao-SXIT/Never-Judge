@@ -7,8 +7,8 @@
 #include <expected>
 #include <qcorotask.h>
 
-#include "../web/oj.h"
 #include "icon.h"
+#include "../web/parse.h"
 
 class PreviewTextWidget;
 
@@ -34,11 +34,15 @@ signals:
     void previewPagesReset();
     void currentIndexChanged();
 
-public slots:
-    QCoro::Task<> downloadOJ();
-    QCoro::Task<> batchDownloadOJ();
+private slots:
     void incrementIndex();
     void decrementIndex();
+
+public slots:
+    QCoro::Task<> loginOJ();
+    QCoro::Task<> submit(QString code);
+    QCoro::Task<> downloadOJ();
+    QCoro::Task<> batchDownloadOJ();
 
 public:
     explicit OpenJudgePreviewWidget(QWidget *parent = nullptr);

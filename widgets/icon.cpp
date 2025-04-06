@@ -6,7 +6,7 @@
 
 IconButton::IconButton(QWidget *parent) : QPushButton(parent) {}
 
-QIcon IconButton::renderIcon(const QString &iconPath, int iconSize) {
+QIcon IconButton::renderIcon(const QString &iconPath, const int iconSize) {
     QSvgRenderer renderer(iconPath);
     QPixmap map(QSize(iconSize, iconSize));
     map.fill(Qt::transparent);
@@ -27,9 +27,9 @@ QIcon IconButton::renderIcon(const QString &iconPath, int iconSize) {
     return {whiteMap};
 }
 
-void IconButton::setIconFromPath(const QString &iconPath, int iconSize) { setIcon(renderIcon(iconPath, iconSize)); }
+void IconButton::setIconFromPath(const QString &iconPath, const int iconSize) { setIcon(renderIcon(iconPath, iconSize)); }
 
-void IconButton::setIconFromResName(const QString &iconName, int iconSize) {
+void IconButton::setIconFromResName(const QString &iconName, const int iconSize) {
     QString iconPath = QString(":/res/icons/%1.svg").arg(iconName);
     setIconFromPath(iconPath, iconSize);
 };

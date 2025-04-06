@@ -1,22 +1,28 @@
 #include "preview.h"
 
+#include <QComboBox>
 #include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>
 #include <QTextEdit>
 #include <QVBoxLayout>
-#include <QWidget>
+
+#include "../web/crawl.h"
 
 class PreviewTextWidget : public QTextEdit {
     Q_OBJECT
 
     QString title;
+    QUrl url;
     void setup() { setReadOnly(true); }
 
 public:
-    explicit PreviewTextWidget(QWidget *parent) : QTextEdit(parent) { setup(); }
-    void setTitle(const QString &title) { this->title = title; }
-    QString &getTitle() { return this->title; }
+    explicit PreviewTextWidget(const QUrl &url, const QString &title, QWidget *parent) :
+        QTextEdit(parent), url(url), title(title) {
+        setup();
+    }
+    QUrl &getUrl() { return url; }
+    QString &getTitle() { return title; }
 };
 
 class EmptyPreviewWidget : public QTextEdit {
@@ -60,7 +66,7 @@ void OpenJudgePreviewWidget::setup() {
     nextBtn->setFixedSize(25, 25);
     connect(nextBtn, &QPushButton::clicked, this, &OpenJudgePreviewWidget::incrementIndex);
 
-    auto *titleLayout = new QHBoxLayout();
+    auto *titleLayout = new QHBoxLayout(this);
     titleLayout->addWidget(lastBtn);
     titleLayout->addWidget(titleLabel);
     titleLayout->addWidget(nextBtn);
@@ -111,8 +117,7 @@ void OpenJudgePreviewWidget::clear() {
 }
 
 QCoro::Task<std::expected<OJProblem, QString>> OpenJudgePreviewWidget::downloadAndParse(const QUrl &url) {
-    Crawler crawler(url);
-    auto content = co_await crawler.crawl();
+    auto content = co_await Crawler::instance().get(url);
     if (!content.has_value()) {
         co_return std::unexpected(tr("下载失败：%1").arg(content.error()));
     }
@@ -121,10 +126,119 @@ QCoro::Task<std::expected<OJProblem, QString>> OpenJudgePreviewWidget::downloadA
         co_return std::unexpected(tr("解析失败：%1").arg(parsed.error()));
     }
 
-    qDebug() << "Parsed problem from: " << url;
+    qDebug() << "Parsed problem from:" << url.url();
     co_return parsed.value();
 }
 
+class LoginDialog : public QDialog {
+    Q_OBJECT
+
+    QLineEdit *emailEdit;
+    QLineEdit *passwordEdit;
+
+public:
+    explicit LoginDialog(QWidget *parent = nullptr) : QDialog(parent) {
+        setWindowTitle(tr("登录"));
+        setModal(true);
+        auto *layout = new QVBoxLayout(this);
+        emailEdit = new QLineEdit(this);
+        passwordEdit = new QLineEdit(this);
+        passwordEdit->setEchoMode(QLineEdit::Password);
+
+        layout->addWidget(new QLabel(tr("邮箱："), this));
+        layout->addWidget(emailEdit);
+        layout->addWidget(new QLabel(tr("密码："), this));
+        layout->addWidget(passwordEdit);
+
+        auto *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+        connect(buttonBox, &QDialogButtonBox::accepted, this, &LoginDialog::accept);
+        connect(buttonBox, &QDialogButtonBox::rejected, this, &LoginDialog::reject);
+        layout->addWidget(buttonBox);
+
+        setLayout(layout);
+    }
+
+    QPair<QString, QString> getCredentials() const { return {emailEdit->text(), passwordEdit->text()}; }
+};
+
+QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
+    LoginDialog dialog(this);
+    if (dialog.exec() != QDialog::Accepted) {
+        co_return;
+    }
+    auto [email, password] = dialog.getCredentials();
+    if (email.isEmpty() || password.isEmpty()) {
+        warning(tr("邮箱和密码不能为空"));
+        co_return;
+    }
+    auto res = co_await Crawler::instance().login(email, password);
+    if (!res.has_value()) {
+        warning(res.error());
+        co_return;
+    }
+}
+
+class SubmitFromDialog : public QDialog {
+    QComboBox *comboBox;
+
+public:
+    explicit SubmitFromDialog(const OJSubmitForm &form, QWidget *parent = nullptr) : QDialog(parent) {
+        // show the languages in problem and let user choose one
+        setWindowTitle(tr("提交"));
+        setModal(true);
+        auto *layout = new QVBoxLayout(this);
+        auto *languageLabel = new QLabel(tr("选择编程语言："), this);
+        comboBox = new QComboBox(this);
+        for (const auto &lang: form.languages) {
+            comboBox->addItem(lang.name, lang.formValue);
+        }
+
+        auto *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+        connect(buttonBox, &QDialogButtonBox::accepted, this, &SubmitFromDialog::accept);
+        connect(buttonBox, &QDialogButtonBox::rejected, this, &SubmitFromDialog::reject);
+        layout->addWidget(languageLabel);
+        layout->addWidget(comboBox);
+        layout->addWidget(buttonBox);
+        setLayout(layout);
+    }
+
+    QString getLanguage() const { return comboBox->currentData().toString(); }
+};
+
+QCoro::Task<> OpenJudgePreviewWidget::submit(QString code) {
+    if (!curPreview()) {
+        warning(tr("你还没有下载选择题目！"));
+        co_return;
+    }
+    if (!Crawler::instance().hasLogin()) {
+        co_await loginOJ();
+        co_return;
+    }
+    QUrl submitUrl = curPreview()->getUrl().url() + "/submit";
+    auto submitRes = co_await Crawler::instance().get(submitUrl);
+    if (!submitRes.has_value()) {
+        // The res should be ok here, unless the website changed
+        warning(submitRes.error());
+        co_return;
+    }
+    auto formRes = co_await OJParser::parseProblemSubmitForm(submitRes.value());
+    if (!formRes.has_value()) {
+        warning(formRes.error());
+        co_return;
+    }
+    auto form = formRes.value();
+    auto dialog = SubmitFromDialog(form, this);
+    if (dialog.exec() != QDialog::Accepted) {
+        co_return;
+    }
+
+    OJSubmitForm newForm = {form.contestId, form.problemNumber, {}, code, dialog.getLanguage(), curPreview()->getUrl()};
+    auto res = co_await Crawler::instance().submit(newForm);
+    if (!res.has_value()) {
+        warning(res.error());
+    }
+    co_return;
+}
 
 QCoro::Task<> OpenJudgePreviewWidget::downloadOJ() {
     bool ok;
@@ -134,24 +248,25 @@ QCoro::Task<> OpenJudgePreviewWidget::downloadOJ() {
         co_return;
     }
     if (url.isEmpty()) {
-        QMessageBox::warning(this, tr("警告"), tr("下载链接不能为空"));
+        warning(tr("下载链接不能为空"));
         co_return;
     };
 
     auto res = co_await downloadAndParse(url);
     if (!res.has_value()) {
-        QMessageBox::warning(this, tr("错误"), res.error());
+        warning(res.error());
         co_return;
     }
 
     clear();
-    auto preview = new PreviewTextWidget(this);
+    auto preview = new PreviewTextWidget(url, res->title, this);
     preview->setHtml(res.value().content);
     textLayout->addWidget(preview);
     emit previewPagesReset();
+    co_return;
 }
 
-void OpenJudgePreviewWidget::warning(const QString &message) { QMessageBox::warning(this, tr("错误"), message); };
+void OpenJudgePreviewWidget::warning(const QString &message) { QMessageBox::warning(this, tr("错误"), message); }
 
 QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
     bool ok;
@@ -167,8 +282,7 @@ QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
     }
 
     QUrl match(matchUrl);
-    Crawler crawler(match);
-    auto content = co_await crawler.crawl();
+    auto content = co_await Crawler::instance().get(match);
     if (!content.has_value()) {
         warning(tr("下载比赛失败：%1").arg(content.error()));
         co_return;
@@ -187,16 +301,16 @@ QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
 
         auto problem = co_await downloadAndParse(url);
         if (problem.has_value()) {
-            auto preview = new PreviewTextWidget(this);
+            auto preview = new PreviewTextWidget(url, problem->title, this);
             preview->setHtml(problem.value().content);
             preview->setVisible(false);
-            preview->setTitle(problem->title);
             textLayout->addWidget(preview);
         } else {
             warning(tr("处理试题 %1 时出错:\n").arg(url.toString()) + problem.error());
         }
     }
     emit previewPagesReset();
+    co_return;
 }
 
 void OpenJudgePreviewWidget::incrementIndex() {

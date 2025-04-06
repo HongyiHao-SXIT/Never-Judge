@@ -6,8 +6,8 @@
 
 #include "icon.h"
 
-#define BTN_SIZE 28
-#define ICON_SIZE 20
+#define NAV_BTN_SIZE 28
+#define NAV_ICON_SIZE 20
 
 IconNavigateWidget::IconNavigateWidget(QWidget *parent) : QWidget(parent) {
     layout = new QVBoxLayout(this);
@@ -17,16 +17,16 @@ IconNavigateWidget::IconNavigateWidget(QWidget *parent) : QWidget(parent) {
 void IconNavigateWidget::setup() {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setAlignment(Qt::AlignTop);
-    this->setFixedWidth(BTN_SIZE);
+    this->setFixedWidth(NAV_BTN_SIZE);
 }
 
 QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString &tooltip) {
     auto *button = new IconToggleButton(this);
 
-    button->setIconFromResName(iconName, ICON_SIZE);
+    button->setIconFromResName(iconName, NAV_ICON_SIZE);
 
-    button->setFixedSize(BTN_SIZE, BTN_SIZE);
-    button->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
+    button->setFixedSize(NAV_BTN_SIZE, NAV_BTN_SIZE);
+    button->setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE));
     button->setToolTip(tooltip);
 
     layout->addWidget(button);

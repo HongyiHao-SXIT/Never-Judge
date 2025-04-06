@@ -6,6 +6,7 @@
 #include "../ide/ide.h"
 #include "code.h"
 #include "fileTree.h"
+#include "footer.h"
 #include "iconNav.h"
 #include "menu.h"
 #include "preview.h"
@@ -23,6 +24,7 @@ class IDEMainWindow : public QMainWindow {
     CodeTabWidget *codeTab;
     MenuBarWidget *menuBar;
     OpenJudgePreviewWidget *ojPreview;
+    FooterWidget *footer;
 
     void setup();
     void connectSignals();
@@ -32,7 +34,8 @@ public:
 
 public slots:
     void openFolder(const QString &folder) const;
-    void runCurrentFile() const;
+    void runCurrentCode() const;
+    void submitCurrentCode() const;
 };
 
 

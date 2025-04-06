@@ -69,8 +69,6 @@ class CodeTabWidget : public QTabWidget {
     Q_OBJECT
 
     void setup();
-    CodeEditWidget *curEdit() const;
-    CodeEditWidget *editAt(int index) const;
 
     /* Add a welcome widget */
     void welcome();
@@ -94,6 +92,8 @@ public:
 
     void clearAll();
     FileInfo currentFile() const;
+    CodeEditWidget *curEdit() const;
+    CodeEditWidget *editAt(int index) const;
     void save();
 };
 

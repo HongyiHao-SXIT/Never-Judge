@@ -29,6 +29,7 @@ void FileTreeWidget::addFileOperationToMenu(QMenu &menu, const QString &file, co
     for (const auto &shortcut: opShortcuts.keys()) {
         if (operation == opShortcuts.value(shortcut)) {
             action->setShortcut(shortcut);
+            break;
         }
     }
     connect(action, &QAction::triggered, this, [this, file, operation] { emit rawOperateFile(file, operation); });
@@ -133,14 +134,14 @@ void FileTreeWidget::createNewFolder(const QString &dir) {
             return;
         }
 
-        QDir dir;
-        if (!dir.mkdir(newFolderPath)) {
+        QDir qDir;
+        if (!qDir.mkdir(newFolderPath)) {
             QMessageBox::warning(this, tr("错误"), tr("无法创建文件夹: %1").arg(newFolderPath));
         }
     }
 }
 
-void FileTreeWidget::handleRawFileOperation(const QString &filename, FileOperation operation) {
+void FileTreeWidget::handleRawFileOperation(const QString &filename, const FileOperation operation) {
     FileInfo file(filename);
     bool ok = true;
 
@@ -180,13 +181,13 @@ void FileTreeWidget::handleRawFileOperation(const QString &filename, FileOperati
         case DELETE: {
             QString fileType = file.isDir() ? tr("目录") : tr("文件");
 
-            if (QMessageBox::question(this, tr("确认删除"), tr("确定要删除%1吗？\n%2").arg(fileType).arg(filename),
+            if (QMessageBox::question(this, tr("确认删除"), tr("确定要删除%1吗？\n%2").arg(fileType, filename),
                                       QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes) {
                 break;
             }
             ok = file.isDir() ? QDir(filename).removeRecursively() : QFile::remove(filename);
             if (!ok) {
-                QMessageBox::warning(this, tr("错误"), tr("无法删除%1: %2").arg(fileType).arg(filename));
+                QMessageBox::warning(this, tr("错误"), tr("无法删除%1: %2").arg(fileType, filename));
             }
             break;
         }

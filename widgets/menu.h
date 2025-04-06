@@ -19,18 +19,24 @@ signals:
     void newFile();
     /* Create a new folder (at the root of the project) */
     void newFolder();
+    /* Login to OJ */
+    void loginOJ();
     /* Download from OJ */
     void downloadOJ();
     /* Batch download from OJ */
     void batchDownloadOJ();
+    /* Submit the code to OJ */
+    void submitOJ();
 
 private slots:
     void onSave();
     void onOpenFolder();
     void onNewFile();
     void onNewFolder();
+    void onLoginOJ();
     void onDownloadOJ();
     void onBatchDownloadOJ();
+    void onSubmitOJ();
 
 public:
     explicit MenuBarWidget(QWidget *parent = nullptr);

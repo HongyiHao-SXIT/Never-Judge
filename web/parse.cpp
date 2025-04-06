@@ -1,27 +1,8 @@
-#include "oj.h"
-
+#include "parse.h"
 #include <QFile>
-#include <qcoro/qcoronetworkreply.h>
-#include <utility>
 
 #include "../util/file.h"
-
-Crawler::Crawler(QUrl url) : url(std::move(url)) {}
-
-QCoro::Task<std::expected<QByteArray, QString>> Crawler::crawl() const {
-    QNetworkAccessManager nam;
-    QNetworkRequest request(url);
-    request.setTransferTimeout(5000);
-    QNetworkReply *reply = co_await nam.get(request);
-    if (reply->error()) {
-        co_return std::unexpected(reply->errorString());
-    }
-    if (reply->bytesAvailable() == 0) {
-        co_return std::unexpected("No data received");
-    }
-    QByteArray data = reply->readAll();
-    co_return data;
-}
+#include "../util/script.h"
 
 QCoro::Task<std::expected<OJProblem, QString>> OJParser::parseProblem(const QByteArray &html) {
     auto tempFile = TempFiles::create("problem", html);
@@ -50,4 +31,31 @@ QCoro::Task<std::expected<QStringList, QString>> OJParser::parseProblemUrlsInMat
         co_return std::unexpected(result.stdErr);
     }
     co_return result.stdOut.split("\n", Qt::SkipEmptyParts);
+};
+
+
+QCoro::Task<std::expected<OJSubmitForm, QString>> OJParser::parseProblemSubmitForm(const QByteArray &content) {
+    auto tempFile = TempFiles::create("submit", content);
+    tempFile->close();
+
+    QFile script = loadRes("script/submit.py");
+    qDebug() << tempFile->fileName();
+    auto result = co_await runPythonScript(script, QStringList() << tempFile->fileName());
+    if (!result.success || result.exitCode != 0) {
+        co_return std::unexpected(result.stdErr);
+    }
+
+    QStringList lines = result.stdOut.split("\n", Qt::SkipEmptyParts);
+    QString contestId = lines[0];
+    QString problemNumber = lines[1];
+    QList<OJLanguage> languages;
+    for (int i = 2; i < lines.size(); ++i) {
+        QStringList lang = lines[i].split(" ");
+        if (lang.size() == 2) {
+            languages.emplace_back(lang[0], lang[1]);
+        }
+    }
+
+    OJSubmitForm res = {contestId, problemNumber, languages};
+    co_return res;
 };

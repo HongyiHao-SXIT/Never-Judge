@@ -1,8 +1,6 @@
 #include "file.h"
 
 #include <QDir>
-#include <QFileSystemWatcher>
-#include <QProcess>
 #include <QStandardPaths>
 #include <qcoro/qcoroprocess.h>
 
@@ -57,8 +55,6 @@ void TempFiles::clearCache() {
     dir.removeRecursively();
     qDebug() << "TempFiles::cleared cache:" << PATH;
 }
-
-ScriptResult ScriptResult::fail() { return {false}; }
 
 const QString ConfigManager::PATH =
         QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/never-judge/config.json";
@@ -164,30 +160,4 @@ void ConfigManager::setBatch(const QJsonObject &config) {
         }
     }
     saveConfig();
-}
-
-
-QCoro::Task<ScriptResult> runPythonScript(QFile &script, QStringList args) {
-    if (!script.open(QIODevice::ReadOnly)) {
-        qWarning() << "Failed to read script: " << script.fileName();
-        co_return ScriptResult::fail();
-    }
-    QTextStream in(&script);
-    QString content = in.readAll();
-
-    auto process = QProcess();
-    co_await qCoro(process).start("python3", QStringList() << "-c" << content << args);
-    if (!co_await qCoro(process).waitForStarted()) {
-        qWarning() << "Failed to start script: " << process.errorString();
-        co_return ScriptResult::fail();
-    }
-    if (!co_await qCoro(process).waitForFinished()) {
-        qWarning() << "Script cost too long time: " << process.errorString();
-        co_return ScriptResult::fail();
-    }
-
-    QString stdOut = process.readAllStandardOutput();
-    QString stdErr = process.readAllStandardError();
-    int exitCode = process.exitCode();
-    co_return {true, exitCode, stdOut, stdErr};
 }
