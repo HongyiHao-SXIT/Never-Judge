@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/res">
+        <file>icons/left.svg</file>
+        <file>icons/right.svg</file>
+        <file>icons/folder.svg</file>
+        <file>icons/search.svg</file>
+        <file>script/match.py</file>
+        <file>script/parser.py</file>
+        <file>setting/settings.json</file>
+    </qresource>
+</RCC>
