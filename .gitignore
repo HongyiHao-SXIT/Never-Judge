@@ -8,7 +8,7 @@ Makefile
 
 # Qt generated files
 *.moc
-*.qrc
+#*.qrc
 *.rcc
 *.uic
 

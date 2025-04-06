@@ -1,11 +1,10 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QPainter>
-#include <QTextBlock>
 #include <utility>
 
+#include "../ide/highlighter.h"
 #include "code.h"
-
 
 /* Welcome widget */
 
@@ -35,18 +34,27 @@ const int LineNumberArea::R_MARGIN = 5;
 
 QFont CodeEditWidget::font("Consolas", 15);
 
-CodeEditWidget::CodeEditWidget(QString filename, QWidget *parent) : QPlainTextEdit(parent) {
+CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) : QPlainTextEdit(parent) {
     lineNumberArea = new LineNumberArea(this);
-    file = FileInfo(std::move(filename));
+    file = FileInfo(filename);
+    modified = false;
+    highlighter = HighlighterFactory::getHighlighter(file.getLanguage(), this->document());
+
+    readFile();
     setup();
     adaptViewport();
 
     connect(this, &CodeEditWidget::blockCountChanged, this, &CodeEditWidget::adaptViewport);
     connect(this, &CodeEditWidget::updateRequest, this, &CodeEditWidget::updateLineNumberArea);
     connect(this, &CodeEditWidget::cursorPositionChanged, this, &CodeEditWidget::highlightLine);
+    connect(this, &QPlainTextEdit::textChanged, this, &CodeEditWidget::onTextChanged);
 }
 
-void CodeEditWidget::setup() { setFont(font); }
+void CodeEditWidget::setup() {
+    setFont(font);
+    // Set tab size to 4 spaces
+    setTabStopDistance(fontMetrics().horizontalAdvance(' ') * 4);
+}
 
 void CodeEditWidget::resizeEvent(QResizeEvent *event) {
     QPlainTextEdit::resizeEvent(event);
@@ -70,6 +78,8 @@ void CodeEditWidget::updateLineNumberArea(const QRect &rect, int dy) {
 }
 
 const FileInfo &CodeEditWidget::getFile() const { return file; }
+
+QString CodeEditWidget::getTabText() const { return file.fileName(); };
 
 int CodeEditWidget::LNAWidth() const {
     int digits = 1;
@@ -119,34 +129,7 @@ void CodeEditWidget::highlightLine() {
     setExtraSelections(selections);
 }
 
-// FIXME: I'm not sure about the code...
-void CodeEditWidget::highlightCode(int line1, int col1, int line2, int col2, QColor color) {
-    QTextCursor cursor = textCursor();
-    cursor.setPosition(QTextCursor::Start);
-    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, line1);
-    cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, col1);
-
-    cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
-
-    if (line1 == line2) {
-        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, col2);
-    } else {
-        for (int i = line1 + 1; i < line2; ++i) {
-            cursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor);
-            cursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
-        }
-        cursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor);
-        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, col2);
-    }
-
-    QTextCharFormat format;
-    format.setBackground(color);
-
-    cursor.mergeCharFormat(format);
-    setTextCursor(cursor);
-}
-
-#define MAX_BUFFER_SIZE 1024 * 1024
+#define MAX_BUFFER_SIZE (1024 * 1024)
 
 void CodeEditWidget::readFile() {
     QFile qfile(file.filePath());
@@ -154,6 +137,7 @@ void CodeEditWidget::readFile() {
         qWarning() << "CodeEditWidget::readFile: Failed to open file " << file.filePath();
         return;
     }
+    QString buffer;
 
     if (qfile.size() > MAX_BUFFER_SIZE) {
         buffer = tr("文件过大，无法在编辑器内打开");
@@ -171,13 +155,13 @@ void CodeEditWidget::saveFile() {
         qWarning() << "CodeEditWidget::saveFile: Failed to open file " << file.filePath();
         return;
     }
-    buffer = toPlainText();
-    qfile.write(buffer.toUtf8());
+    modified = false;
+    qfile.write(toPlainText().toUtf8());
     qfile.close();
 }
 
 bool CodeEditWidget::askForSave() {
-    if (buffer == toPlainText()) {
+    if (!modified) {
         return true;
     }
 
@@ -192,6 +176,13 @@ bool CodeEditWidget::askForSave() {
         return false;
     }
     return true;
+}
+
+void CodeEditWidget::onTextChanged() {
+    if (!modified) {
+        modified = true;
+        modify();
+    }
 }
 
 /* Code tab widget */
@@ -219,20 +210,20 @@ CodeEditWidget *CodeTabWidget::editAt(int index) const { return qobject_cast<Cod
 
 void CodeTabWidget::welcome() { addTab(new WelcomeWidget(this), "欢迎"); }
 
-void CodeTabWidget::addCodeEdit(const QString &filename) {
+void CodeTabWidget::addCodeEdit(const QString &filePath) {
     // find if the file is already opened
     for (int i = 0; i < count(); ++i) {
         auto *edit = editAt(i);
-        if (edit && edit->getFile().filePath() == filename) {
+        if (edit && edit->getFile().filePath() == filePath) {
             setCurrentIndex(i); // switch to the existing tab
             return;
         }
     }
 
-    auto *edit = new CodeEditWidget(filename, this);
-    int index = addTab(edit, edit->getFile().fileName());
+    auto *edit = new CodeEditWidget(filePath, this);
+    int index = addTab(edit, edit->getTabText());
+    connect(edit, &CodeEditWidget::modify, this, [this, index] { widgetModified(index); });
     setCurrentIndex(index);
-    edit->readFile();
 }
 
 void CodeTabWidget::checkRemoveCodeEdit(const QString &filename) {
@@ -268,6 +259,11 @@ void CodeTabWidget::removeCodeEditRequested(int index) {
     }
 }
 
+void CodeTabWidget::widgetModified(int index) {
+    // add a * after the title
+    setTabText(index, editAt(index)->getTabText() + " *");
+}
+
 void CodeTabWidget::removeCodeEdit(int index) {
     if (index < 0 || index >= count())
         return;
@@ -289,8 +285,10 @@ FileInfo CodeTabWidget::currentFile() const {
     return FileInfo::empty();
 }
 
-void CodeTabWidget::save() const {
+void CodeTabWidget::save() {
     if (auto *edit = curEdit()) {
         edit->saveFile();
+        // recover the tab title
+        setTabText(currentIndex(), edit->getTabText());
     }
 }

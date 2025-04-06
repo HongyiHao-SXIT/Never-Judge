@@ -13,19 +13,19 @@ FileInfo::FileInfo() = default;
 
 FileInfo FileInfo::empty() { return {}; }
 
-FileInfo::FileInfo(QString fileName) : QFileInfo(std::move(fileName)) {}
+FileInfo::FileInfo(const QString& fileName) : QFileInfo(fileName) {}
 
 Language FileInfo::getLanguage() const {
     if (suffix() == "c") {
-        return C;
+        return Language::C;
     }
     if (suffix() == "cpp") {
-        return CPP;
+        return Language::CPP;
     }
     if (suffix() == "py") {
-        return PYTHON;
+        return Language::PYTHON;
     }
-    return UNKNOWN;
+    return Language::UNKNOWN;
 }
 
 bool FileInfo::isValid() const { return !filePath().isEmpty(); }

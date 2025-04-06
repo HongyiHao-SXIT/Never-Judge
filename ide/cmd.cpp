@@ -26,16 +26,16 @@ Command Command::runFile(const FileInfo &file) {
     Command run;
 
     switch (language) {
-        case PYTHON:
+        case Language::PYTHON:
             run = {"python " + name};
             break;
-        case C:
+        case Language::C:
             target = name.split(".").first();
             compile = Command("gcc " + name + " -o " + target);
             run = {"./" + target};
             run = compile.merge(run);
             break;
-        case CPP:
+        case Language::CPP:
             target = name.split(".").first();
             compile = Command("g++ " + name + " -o " + target);
             run = {"./" + target};

@@ -101,7 +101,7 @@ void IDEMainWindow::runCurrentFile() const {
         msgBox.exec();
         return;
     }
-    if (file.getLanguage() == UNKNOWN) {
+    if (file.getLanguage() == Language::UNKNOWN) {
         QMessageBox msgBox;
         msgBox.setText(tr("不支持运行的文件类型"));
         msgBox.setInformativeText(tr("仅支持 C/C++/CMAKE/Python 文件"));

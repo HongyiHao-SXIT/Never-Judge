@@ -11,6 +11,7 @@ int main(int argc, char *argv[]) {
 #ifndef NDEBUG
     // clear the temp file cache in case of a crash
     TempFiles::clearCache();
+    ConfigManager::clear();
 #endif
 
     window->show();

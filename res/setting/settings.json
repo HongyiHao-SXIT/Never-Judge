@@ -1,0 +1,200 @@
+{
+  "highlightRules": [
+    {
+      "pattern": "(identifier) @identifier",
+      "foreground": "#ACECFF"
+    },
+    {
+      "language": "cpp",
+      "pattern": "(field_identifier) @identifier",
+      "foreground": "#ACECFF"
+    },
+    {
+      "pattern": "(comment) @comment",
+      "foreground": "#7AA965",
+      "style": "italic"
+    },
+    {
+      "language": [
+        "c",
+        "cpp"
+      ],
+      "pattern": [
+        "(function_declarator declarator: [(identifier) (field_identifier)] @function)",
+        "(function_declarator declarator: (qualified_identifier (identifier) @function))",
+        "(function_declarator declarator: (init_declarator (identifier) @function))",
+        "(call_expression (identifier) @function)",
+        "(call_expression function: (field_expression (field_identifier) @function))",
+        "(call_expression function: (qualified_identifier (identifier) @function))"
+      ],
+      "foreground": "#ECECBA"
+    },
+    {
+      "language": "python",
+      "pattern": [
+        "(call function: (identifier) @function)",
+        "(call function: (attribute attribute: (identifier) @function))",
+        "(function_definition (identifier) @function)"
+      ],
+      "foreground": "#ECECBA"
+    },
+    {
+      "language": [
+        "c",
+        "cpp"
+      ],
+      "pattern": [
+        "[\"break\" \"case\" \"const\" \"continue\" \"default\" \"do\" \"else\" \"enum\" \"extern\" \"for\" \"goto\" \"if\" \"long\" \"register\" \"return\" \"short\" \"signed\" \"sizeof\" \"static\" \"struct\" \"switch\" \"typedef\" \"union\" \"unsigned\" \"volatile\" \"asm\" \"inline\"] @keyword",
+        "[\"#include\" \"#define\" \"defined\" \"#ifdef\" \"#ifndef\" \"#endif\" \"#if\" \"#else\" \"#elif\" \"defined\"] @preproc",
+        "(preproc_call (preproc_directive) @preproc)"
+      ],
+      "foreground": "#D596D0"
+    },
+    {
+      "language": "cpp",
+      "pattern": "[(auto) \"catch\" \"class\" \"delete\" \"explicit\" \"friend\" \"mutable\" \"namespace\" \"new\" \"operator\" \"private\" \"protected\" \"public\"  \"template\" \"throw\" \"try\" \"typename\" \"using\" ] @keyword",
+      "foreground": "#D596D0"
+    },
+    {
+      "language": "cpp",
+      "pattern": "(this) @this",
+      "foreground": "#D596D0",
+      "style": "italic"
+    },
+    {
+      "language": "python",
+      "pattern": "[\"and\" \"as\" \"assert\" \"async\" \"await\" \"break\" \"class\" \"continue\" \"def\" \"del\" \"elif\" \"else\" \"except\" \"finally\" \"for\" \"from\" \"global\" \"if\" \"import\" \"in\" \"is\" \"lambda\" \"nonlocal\" \"not\" \"or\" \"pass\" \"raise\" \"return\" \"try\" \"while\" \"with\" \"yield\" \"match\" \"case\"] @keyword",
+      "foreground": "#D596D0"
+    },
+    {
+      "language": [
+        "c",
+        "cpp"
+      ],
+      "pattern": [
+        "(string_literal) @string",
+        "(preproc_include path: [(system_lib_string) (string_literal)] @includePath)"
+      ],
+      "foreground": "#DEA188"
+    },
+    {
+      "language": "python",
+      "pattern": "(string) @string",
+      "foreground": "#DEA188"
+    },
+    {
+      "language": [
+        "c",
+        "cpp"
+      ],
+      "pattern": "(number_literal) @number",
+      "foreground": "#C5DEB8"
+    },
+    {
+      "language": "python",
+      "pattern": [
+        "(integer) @number",
+        "(float) @number"
+      ],
+      "foreground": "#C5DEB8"
+    },
+    {
+      "language": [
+        "c",
+        "cpp"
+      ],
+      "pattern": [
+        "(parameter_declaration (identifier) @parameter)",
+        "(parameter_declaration declarator: (pointer_declarator (identifier) @parameter))"
+      ],
+      "foreground": "#FFCCB1"
+    },
+    {
+      "language": "cpp",
+      "pattern": [
+        "(parameter_declaration declarator: (reference_declarator (identifier) @parameter))"
+      ],
+      "foreground": "#FFCCB1"
+    },
+    {
+      "language": "python",
+      "pattern": [
+        "(function_definition (parameters (identifier) @parameters))",
+        "(function_definition (parameters (default_parameter name: (identifier) @parameters)))",
+        "(function_definition (parameters (typed_parameter (identifier) @parameters)))",
+        "(function_definition (parameters (typed_default_parameter name: (identifier) @parameters)))",
+        "(argument_list (keyword_argument name: (identifier) @parameters))"
+      ],
+      "foreground": "#FFCCB1"
+    },
+    {
+      "language": [
+        "c",
+        "cpp"
+      ],
+      "pattern": [
+        "(primitive_type) @primitive_type"
+      ],
+      "foreground": "#66ACE6"
+    },
+    {
+      "language": [
+        "python"
+      ],
+      "pattern": "[(false) (none) (true)] @primitive_type",
+      "foreground": "#66ACE6"
+    },
+    {
+      "language": [
+        "c",
+        "cpp"
+      ],
+      "pattern": "(type_identifier) @type",
+      "foreground": "#5ED9C0"
+    },
+    {
+      "language": "python",
+      "pattern": [
+        "(class_definition (identifier) @class)",
+        "(type) @type",
+        "(class_definition superclasses: (argument_list [(identifier) (attribute)] @superclass))"
+      ],
+      "foreground": "#5ED9C0"
+    },
+    {
+      "language": "cpp",
+      "pattern": "(namespace_identifier) @namespace",
+      "foreground": "#94EB75"
+    },
+    {
+      "language": "python",
+      "pattern": [
+        "(import_statement (dotted_name) @module)",
+        "(import_from_statement module_name: (dotted_name) @module)",
+        "(import_statement (aliased_import [(dotted_name) alias: (identifier)] @module))"
+      ],
+      "foreground": "#94EB75"
+    },
+    {
+      "language": "python",
+      "pattern": "(decorator) @decorator",
+      "foreground": "#C9BAFF"
+    },
+    {
+      "language": [
+        "c",
+        "cpp"
+      ],
+      "pattern": [
+        "(preproc_ifdef name: (identifier) @macro)",
+        "(preproc_def name: (identifier) @macro)"
+      ],
+      "foreground": "#E97AA1",
+      "style": "bold"
+    },
+    {
+      "pattern": "[\",\" \".\" \":\" \";\" \"^\" \"&\" \"+\" \"-\" \"*\" \"/\" \"%\" \"~\"] @punctuation",
+      "foreground": "#DDDDDD"
+    }
+  ]
+}

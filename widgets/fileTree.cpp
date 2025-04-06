@@ -52,18 +52,18 @@ void FileTreeWidget::contextMenuEvent(QContextMenuEvent *event) {
     QString filePath = model->filePath(index);
     QMenu menu(this);
 
-    addFileOperationToMenu(menu, filePath, "打开", OPEN);
-    addFileOperationToMenu(menu, filePath, "在本地打开", OPEN_LOCALLY);
-    addFileOperationToMenu(menu, filePath, "重命名", RENAME);
-    addFileOperationToMenu(menu, filePath, "删除", DELETE);
+    addFileOperationToMenu(menu, filePath, tr("打开"), OPEN);
+    addFileOperationToMenu(menu, filePath, tr("在本地打开"), OPEN_LOCALLY);
+    addFileOperationToMenu(menu, filePath, tr("重命名"), RENAME);
+    addFileOperationToMenu(menu, filePath, tr("删除"), DELETE);
 
     menu.addSeparator();
 
     if (model->isDir(index)) {
-        QAction *newFileAction = menu.addAction("新建文件");
+        QAction *newFileAction = menu.addAction(tr("新建文件"));
         connect(newFileAction, &QAction::triggered, this, [this, filePath] { createNewFile(filePath); });
 
-        QAction *newFolderAction = menu.addAction("新建文件夹");
+        QAction *newFolderAction = menu.addAction(tr("新建文件夹"));
         connect(newFolderAction, &QAction::triggered, this, [this, filePath] { createNewFolder(filePath); });
     }
 
