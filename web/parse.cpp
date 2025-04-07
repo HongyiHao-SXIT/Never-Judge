@@ -9,28 +9,32 @@ QCoro::Task<std::expected<OJProblem, QString>> OJParser::parseProblem(const QByt
     tempFile->close();
 
     QFile script = loadRes("script/parser.py");
-    auto result = co_await runPythonScript(script, QStringList() << tempFile->fileName());
-    if (!result.success || result.exitCode != 0) {
-        co_return std::unexpected(result.stdErr);
+    auto output = co_await runPythonScript(script, QStringList() << tempFile->fileName());
+    if (!output.success || output.exitCode != 0) {
+        co_return std::unexpected(output.stdErr);
     }
-    auto split = result.stdOut.indexOf('\n');
+    auto split = output.stdOut.indexOf('\n');
 
-    QString title = result.stdOut.mid(0, split);
-    QString content = result.stdOut.mid(split + 1);
+    QString title = output.stdOut.mid(0, split);
+    QString content = output.stdOut.mid(split + 1);
 
-    co_return OJProblem{title, content};
+    co_return OJProblem(title, content);
 }
 
-QCoro::Task<std::expected<QStringList, QString>> OJParser::parseProblemUrlsInMatch(const QByteArray &content) {
+QCoro::Task<std::expected<OJMatch, QString>> OJParser::parseProblemUrlsInMatch(const QByteArray &content) {
     auto tempFile = TempFiles::create("match", content);
     tempFile->close();
 
     QFile script = loadRes("script/match.py");
-    auto result = co_await runPythonScript(script, QStringList() << tempFile->fileName());
-    if (!result.success || result.exitCode != 0) {
-        co_return std::unexpected(result.stdErr);
+    auto output = co_await runPythonScript(script, QStringList() << tempFile->fileName());
+    if (!output.success || output.exitCode != 0) {
+        co_return std::unexpected(output.stdErr);
     }
-    co_return result.stdOut.split("\n", Qt::SkipEmptyParts);
+    QList<QUrl> urls;
+    for (auto &url: output.stdOut.split("\n", Qt::SkipEmptyParts)) {
+        urls.append(url);
+    }
+    co_return OJMatch(urls);
 };
 
 
@@ -39,13 +43,12 @@ QCoro::Task<std::expected<OJSubmitForm, QString>> OJParser::parseProblemSubmitFo
     tempFile->close();
 
     QFile script = loadRes("script/submit.py");
-    qDebug() << tempFile->fileName();
-    auto result = co_await runPythonScript(script, QStringList() << tempFile->fileName());
-    if (!result.success || result.exitCode != 0) {
-        co_return std::unexpected(result.stdErr);
+    auto output = co_await runPythonScript(script, QStringList() << tempFile->fileName());
+    if (!output.success || output.exitCode != 0) {
+        co_return std::unexpected(output.stdErr);
     }
 
-    QStringList lines = result.stdOut.split("\n", Qt::SkipEmptyParts);
+    auto lines = output.stdOut.split("\n", Qt::SkipEmptyParts);
     QString contestId = lines[0];
     QString problemNumber = lines[1];
     QList<OJLanguage> languages;
@@ -56,6 +59,32 @@ QCoro::Task<std::expected<OJSubmitForm, QString>> OJParser::parseProblemSubmitFo
         }
     }
 
-    OJSubmitForm res = {contestId, problemNumber, languages};
-    co_return res;
-};
+    co_return OJSubmitForm(contestId, problemNumber, languages);
+}
+
+QCoro::Task<std::expected<OJSubmitResponse, QString>> OJParser::parseProblemSubmitResponse(const QByteArray &content) {
+    auto tempFile = TempFiles::create("submit_result", content);
+    tempFile->close();
+
+    QFile script = loadRes("script/submit_response.py");
+    auto output = co_await runPythonScript(script, QStringList() << tempFile->fileName());
+    if (!output.success || output.exitCode != 0) {
+        co_return std::unexpected(output.stdErr);
+    }
+
+    static QMap<QString, OJSubmitResult> map = {{"Waiting", W},
+                                                {"Accepted", AC},
+                                                {"Wrong Answer", WA},
+                                                {"Compile Error", CE},
+                                                {"Runtime Error", RE},
+                                                {"Time Limit Exceeded", TLE},
+                                                {"Memory Limit Exceeded", MLE},
+                                                {"Presentation Error", PE}};
+
+    QString outStr = output.stdOut;
+    auto index = outStr.indexOf('\n');
+    QString resStr = outStr.mid(0, index);
+    auto result = map.contains(resStr) ? map[resStr] : UKE;
+    auto message = outStr.count('\n') > 1 ? outStr.mid(index + 1) : "";
+    co_return OJSubmitResponse(result, message);
+}

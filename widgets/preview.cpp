@@ -1,12 +1,15 @@
 #include "preview.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>
 #include <QTextEdit>
 #include <QVBoxLayout>
+#include <utility>
 
+#include "../util/file.h"
 #include "../web/crawl.h"
 
 class PreviewTextWidget : public QTextEdit {
@@ -50,6 +53,8 @@ OpenJudgePreviewWidget::OpenJudgePreviewWidget(QWidget *parent) : QWidget(parent
 
     connect(this, &OpenJudgePreviewWidget::previewPagesReset, this, &OpenJudgePreviewWidget::reset);
     connect(this, &OpenJudgePreviewWidget::currentIndexChanged, this, &OpenJudgePreviewWidget::refresh);
+    connect(this, &OpenJudgePreviewWidget::submitFinished, this, &OpenJudgePreviewWidget::waitForResponse);
+    connect(this, &OpenJudgePreviewWidget::submitResponseReceived, this, &OpenJudgePreviewWidget::showSubmitResponse);
 }
 
 void OpenJudgePreviewWidget::setup() {
@@ -116,7 +121,7 @@ void OpenJudgePreviewWidget::clear() {
     emit previewPagesReset();
 }
 
-QCoro::Task<std::expected<OJProblem, QString>> OpenJudgePreviewWidget::downloadAndParse(const QUrl &url) {
+QCoro::Task<std::expected<OJProblem, QString>> OpenJudgePreviewWidget::downloadAndParse(QUrl url) {
     auto content = co_await Crawler::instance().get(url);
     if (!content.has_value()) {
         co_return std::unexpected(tr("下载失败：%1").arg(content.error()));
@@ -135,20 +140,24 @@ class LoginDialog : public QDialog {
 
     QLineEdit *emailEdit;
     QLineEdit *passwordEdit;
+    QCheckBox *rememberMeCheckBox;
 
-public:
-    explicit LoginDialog(QWidget *parent = nullptr) : QDialog(parent) {
+    void setup() {
         setWindowTitle(tr("登录"));
         setModal(true);
+        setMinimumWidth(300);
         auto *layout = new QVBoxLayout(this);
-        emailEdit = new QLineEdit(this);
-        passwordEdit = new QLineEdit(this);
-        passwordEdit->setEchoMode(QLineEdit::Password);
 
         layout->addWidget(new QLabel(tr("邮箱："), this));
         layout->addWidget(emailEdit);
         layout->addWidget(new QLabel(tr("密码："), this));
         layout->addWidget(passwordEdit);
+        passwordEdit->setEchoMode(QLineEdit::Password);
+        layout->addWidget(rememberMeCheckBox);
+
+        auto reminder = new QLabel(tr("为了保证账号安全，不支持记住密码"), this);
+        reminder->setStyleSheet("color: #999999");
+        layout->addWidget(reminder);
 
         auto *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
         connect(buttonBox, &QDialogButtonBox::accepted, this, &LoginDialog::accept);
@@ -158,8 +167,26 @@ public:
         setLayout(layout);
     }
 
+    void readRemembered() {
+        QString email = ConfigManager::instance().get("email", "").toString();
+        emailEdit->setText(email);
+        rememberMeCheckBox->setChecked(!email.isEmpty());
+    }
+
+public:
+    explicit LoginDialog(QWidget *parent = nullptr) : QDialog(parent) {
+        emailEdit = new QLineEdit(this);
+        passwordEdit = new QLineEdit(this);
+        rememberMeCheckBox = new QCheckBox(tr("记住我的账号"), this);
+        setup();
+        readRemembered();
+    }
+
     QPair<QString, QString> getCredentials() const { return {emailEdit->text(), passwordEdit->text()}; }
+
+    bool rememberMe() const { return rememberMeCheckBox->isChecked(); }
 };
+
 
 QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
     LoginDialog dialog(this);
@@ -169,14 +196,18 @@ QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
     auto [email, password] = dialog.getCredentials();
     if (email.isEmpty() || password.isEmpty()) {
         warning(tr("邮箱和密码不能为空"));
+        co_await loginOJ();
         co_return;
     }
     auto res = co_await Crawler::instance().login(email, password);
     if (!res.has_value()) {
         warning(res.error());
+        co_await loginOJ();
         co_return;
     }
     QMessageBox::information(this, tr("登录成功"), tr("欢迎，") + email);
+    ConfigManager::instance().set("email", dialog.rememberMe() ? email : "");
+
     emit loginAs(email);
 }
 
@@ -239,7 +270,65 @@ QCoro::Task<> OpenJudgePreviewWidget::submit(QString code) {
     if (!res.has_value()) {
         warning(res.error());
     }
+    emit submitFinished(std::move(res.value()));
     co_return;
+}
+
+QCoro::Task<> OpenJudgePreviewWidget::waitForResponse(QUrl responseUrl) {
+    auto res = co_await Crawler::instance().get(responseUrl);
+    if (!res.has_value()) {
+        warning(tr("等待提交结果时出现错误: %1").arg(res.error()));
+        co_return;
+    }
+    auto response = co_await OJParser::parseProblemSubmitResponse(res.value());
+    if (!response.has_value()) {
+        warning(response.error());
+        co_return;
+    }
+    emit submitResponseReceived(std::move(response.value()), std::move(responseUrl));
+    co_return;
+}
+
+void OpenJudgePreviewWidget::showSubmitResponse(const OJSubmitResponse &response, QUrl source) {
+    QString text;
+    bool ok = false;
+    switch (response.result) {
+        case W:
+            // retry to wait for the result;
+            emit submitFinished(std::move(source));
+            return;
+        case AC:
+            ok = true;
+            text = tr("您 AC 了！太您了！");
+            break;
+        case WA:
+            text = tr("喜报：您 WA 了！");
+            break;
+        case CE:
+            text = tr("CE... 提交前能不能先看看代码跑得起来不？\n%1").arg(response.message);
+            break;
+        case RE:
+            text = tr("您 RE 了！但愿不是段错误...");
+            break;
+        case TLE:
+            text = tr("您 TLE 了！超时判负！");
+            break;
+        case MLE:
+            text = tr("您 MLE 了！也许我该换个更大的内存条...");
+            break;
+        case PE:
+            text = tr("PE！注意一下格式就可以了吧，大概...");
+            break;
+        case UKE:
+            text = tr("是没见过的报错呢~ 还请您手动看看~");
+            break;
+    }
+
+    if (ok) {
+        QMessageBox::information(this, "通过！", text);
+    } else {
+        QMessageBox::warning(this, "失败！", text);
+    }
 }
 
 QCoro::Task<> OpenJudgePreviewWidget::downloadOJ() {
@@ -297,7 +386,7 @@ QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
     }
 
     clear();
-    for (const auto &relativeUrl: urls.value()) {
+    for (const auto &relativeUrl: urls.value().problemUrls) {
         // These urls are relative url in the website
         auto url = match.resolved(relativeUrl);
 

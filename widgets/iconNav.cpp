@@ -1,6 +1,5 @@
 #include <QPainter>
 #include <QSvgRenderer>
-#include <QVBoxLayout>
 
 #include "iconNav.h"
 
@@ -9,15 +8,27 @@
 #define NAV_BTN_SIZE 28
 #define NAV_ICON_SIZE 20
 
-IconNavigateWidget::IconNavigateWidget(QWidget *parent) : QWidget(parent) {
+IconNavigateWidget::IconNavigateWidget(QWidget *parent) : QFrame(parent) {
     layout = new QVBoxLayout(this);
     setup();
 }
 
 void IconNavigateWidget::setup() {
-    layout->setContentsMargins(0, 0, 0, 0);
+    setFrameShape(VLine);
+    setFrameShadow(Plain);
+    setStyleSheet("QFrame {"
+                  "border-top: 1px solid palette(mid);"
+                  "border-bottom: 1px solid palette(mid);"
+                  "border-left: none;"
+                  "border-right: none;"
+                  "}");
+
+    layout->setContentsMargins(0, 10, 0, 10);
+    layout->setSpacing(10);
     layout->setAlignment(Qt::AlignTop);
-    this->setFixedWidth(NAV_BTN_SIZE);
+
+    setLayout(layout);
+    setFixedWidth(NAV_BTN_SIZE);
 }
 
 QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString &tooltip) {
@@ -37,18 +48,25 @@ QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString 
 LeftIconNavigateWidget::LeftIconNavigateWidget(QWidget *parent) : IconNavigateWidget(parent) { addIcons(); }
 
 void LeftIconNavigateWidget::addIcons() {
-    QPushButton *fileTreeBtn = newIcon("folder", tr("文件树"));
+    auto *fileTreeBtn = newIcon("folder", tr("文件树"));
     fileTreeBtn->setChecked(true);
     connect(fileTreeBtn, &QPushButton::toggled, this, &LeftIconNavigateWidget::onToggleFileTree);
+
+    layout->addStretch();
+
+    auto *terminalButton = newIcon("terminal", tr("集成终端"));
+    connect(terminalButton, &QPushButton::toggled, this, &LeftIconNavigateWidget::onToggleTerminal);
 }
 
-void LeftIconNavigateWidget::onToggleFileTree(bool checked) { emit toggleFileTree(checked); }
+void LeftIconNavigateWidget::onToggleFileTree(const bool checked) { emit toggleFileTree(checked); }
+
+void LeftIconNavigateWidget::onToggleTerminal(const bool checked) { emit toggleTerminal(checked); }
 
 RightIconNavigateWidget::RightIconNavigateWidget(QWidget *parent) : IconNavigateWidget(parent) { addIcons(); }
 
 void RightIconNavigateWidget::addIcons() {
-    QPushButton *previewBtn = newIcon("search", tr("显示预览"));
+    auto *previewBtn = newIcon("search", tr("显示预览"));
     connect(previewBtn, &QPushButton::toggled, this, &RightIconNavigateWidget::onTogglePreview);
 }
 
-void RightIconNavigateWidget::onTogglePreview(bool checked) { emit togglePreview(checked); }
+void RightIconNavigateWidget::onTogglePreview(const bool checked) { emit togglePreview(checked); }

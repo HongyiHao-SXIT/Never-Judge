@@ -31,21 +31,28 @@ Command Command::runFile(const FileInfo &file) {
             break;
         case Language::C:
             target = name.split(".").first();
+#ifdef __linux__
             compile = Command("gcc " + name + " -o " + target);
+#elif defined(__APPLE__)
+            compile = Command("clang " + name + " -o " + target);
+#endif
             run = {"./" + target};
             run = compile.merge(run);
             break;
         case Language::CPP:
             target = name.split(".").first();
+#ifdef __linux__
             compile = Command("g++ " + name + " -o " + target);
+#elif defined(__APPLE__)
+            compile = Command("clang++ " + name + " -o " + target);
+#endif
             run = {"./" + target};
             run = compile.merge(run);
             break;
         default:
-            // TODO
-            run = "run " + name;
             break;
     }
 
     return cd.merge(run);
 };
+

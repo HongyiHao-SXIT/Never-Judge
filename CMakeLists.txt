@@ -27,6 +27,7 @@ set(PROJECT_SOURCES
         ide/cmd.cpp
         ide/ide.cpp
         ide/highlighter.cpp
+        widgets/setting.cpp
         widgets/icon.cpp
         widgets/footer.cpp
         widgets/iconNav.cpp

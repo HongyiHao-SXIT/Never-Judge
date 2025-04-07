@@ -140,7 +140,7 @@ QCoro::Task<std::expected<QByteArray, QString>> Crawler::login(const QString &em
     return get(QUrl("http://openjudge.cn/"));
 }
 
-QCoro::Task<std::expected<QByteArray, QString>> Crawler::submit(OJSubmitForm form) {
+QCoro::Task<std::expected<QUrl, QString>> Crawler::submit(OJSubmitForm form) {
     QUrl url = form.problemUrl.resolved(QUrl("/api/solution/submitv2/"));
     QByteArray encodedCode = form.code.toUtf8().toBase64();
     QMap<QString, QString> params = {
@@ -160,7 +160,7 @@ QCoro::Task<std::expected<QByteArray, QString>> Crawler::submit(OJSubmitForm for
     }
     QJsonObject obj = doc.object();
     if (obj["result"].toString() == "SUCCESS") {
-        co_return response.value();
+        co_return obj["redirect"].toString();
     }
     QString message = obj["message"].toString();
     co_return std::unexpected(message);

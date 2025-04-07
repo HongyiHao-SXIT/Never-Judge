@@ -8,8 +8,6 @@ class MyShell : public QTermWidget {
 
     void setup() {
         QIcon::setThemeName(QStringLiteral("oxygen"));
-
-        // TODO: Change the font and color if needed
         QFont font = QApplication::font();
         font.setFamily(QStringLiteral("Consolas"));
         font.setPointSize(12);
@@ -54,6 +52,6 @@ void TerminalWidget::setProject(const Project *project) {
     newTerminal();
 }
 
-void TerminalWidget::runCmd(const Command &command) { shell->sendText(command.text()); }
+void TerminalWidget::runCmd(const Command &command) const { shell->sendText(command.text()); }
 
 #include "terminal.moc"

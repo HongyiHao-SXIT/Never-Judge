@@ -5,7 +5,6 @@
 #include <QFileSystemWatcher>
 #include <QJsonObject>
 #include <QMutex>
-#include <qcorotask.h>
 
 QFile loadRes(const QString &path);
 
@@ -37,7 +36,7 @@ class ConfigManager : public QObject {
 public:
     static ConfigManager &instance();
     static void clear();
-    QVariant get(const QString &key) const;
+    QVariant get(const QString &key, const QVariant &defaultValue) const;
     QJsonObject getAll() const;
 
     void set(const QString &key, const QVariant &value);

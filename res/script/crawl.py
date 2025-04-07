@@ -64,5 +64,5 @@ else:
 if response.status_code == 200:
     print(response.text)
 else:
-    sys.stderr.write("Request failed with status code", response.status_code)
+    sys.stderr.write(f"Request failed with status code: {response.status_code}")
     exit(1)

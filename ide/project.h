@@ -13,7 +13,7 @@ public:
     QString getRoot() const;
 };
 
-enum class Language { C, CPP, CMAKE, PYTHON, UNKNOWN };
+enum class Language { C, CPP, PYTHON, UNKNOWN };
 
 class FileInfo : public QFileInfo {
 public:

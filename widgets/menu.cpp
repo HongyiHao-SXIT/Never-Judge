@@ -28,9 +28,14 @@ void MenuBarWidget::setup() {
     QMenu *runMenu = this->addMenu("运行");
     newAction(runMenu, "运行", QKeySequence(Qt::CTRL | Qt::Key_R), &MenuBarWidget::runCode);
 
+    // Edit menu
+    QMenu *editMenu = this->addMenu("编辑");
+    newAction(editMenu, "设置", QKeySequence(Qt::Key_F5), &MenuBarWidget::openSettings);
+
     // OJ menu
     QMenu *ojMenu = this->addMenu("OpenJudge");
     newAction(ojMenu, "登录", QKeySequence(), &MenuBarWidget::onLoginOJ);
+    ojMenu->addSeparator();
     newAction(ojMenu, "下载", QKeySequence(), &MenuBarWidget::onDownloadOJ);
     newAction(ojMenu, "批量下载", QKeySequence(), &MenuBarWidget::onBatchDownloadOJ);
     newAction(ojMenu, "提交", QKeySequence(), &MenuBarWidget::onSubmitOJ);
@@ -55,6 +60,8 @@ void MenuBarWidget::onNewFile() { emit newFile(); }
 
 void MenuBarWidget::onNewFolder() { emit newFolder(); }
 
+void MenuBarWidget::onOpenSettings() { emit openSettings(); }
+
 void MenuBarWidget::onLoginOJ() { emit loginOJ(); }
 
 void MenuBarWidget::onDownloadOJ() { emit downloadOJ(); }
@@ -63,7 +70,7 @@ void MenuBarWidget::onBatchDownloadOJ() { emit batchDownloadOJ(); }
 
 void MenuBarWidget::onSubmitOJ() { emit submitOJ(); }
 
-void MenuBarWidget::onLogin(const QString &username)  {
+void MenuBarWidget::onLogin(const QString &username) {
     user->setText(username);
     setCornerWidget(user);
 }

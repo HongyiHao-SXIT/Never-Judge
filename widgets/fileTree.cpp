@@ -10,6 +10,7 @@
 
 #include "../ide/project.h"
 
+
 FileTreeWidget::FileTreeWidget(QWidget *parent) : QTreeView(parent) {
     model = new QFileSystemModel(this);
     this->QTreeView::setModel(model);
@@ -20,7 +21,7 @@ FileTreeWidget::FileTreeWidget(QWidget *parent) : QTreeView(parent) {
 
 void FileTreeWidget::setRoot(const QString &root) {
     model->setRootPath(root);
-    this->setRootIndex(model->index(root));
+    setRootIndex(model->index(root));
 }
 
 void FileTreeWidget::addFileOperationToMenu(QMenu &menu, const QString &file, const QString &label,
@@ -36,9 +37,9 @@ void FileTreeWidget::addFileOperationToMenu(QMenu &menu, const QString &file, co
 }
 
 void FileTreeWidget::setup() {
-    this->header()->setStretchLastSection(true);
-    this->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
-
+    // TODO: Finish the title
+    header()->hide();
+    // only keep filenames
     for (int i = 1; i < model->columnCount(); ++i) {
         this->hideColumn(i);
     }

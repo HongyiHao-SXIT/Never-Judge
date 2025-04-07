@@ -1,18 +1,18 @@
 #ifndef PARSE_H
 #define PARSE_H
 
-#include "crawl.h"
+#include "oj.h"
+#include <expected>
+#include <qcoro/qcoronetworkreply.h>
+#include <qcorotask.h>
 
-struct OJProblem {
-    QString title;
-    QString content;
-};
-
+/** A wrapper parser for python script */
 class OJParser {
 public:
     static QCoro::Task<std::expected<OJProblem, QString>> parseProblem(const QByteArray &html);
-    static QCoro::Task<std::expected<QStringList, QString>> parseProblemUrlsInMatch(const QByteArray &content);
+    static QCoro::Task<std::expected<OJMatch, QString>> parseProblemUrlsInMatch(const QByteArray &content);
     static QCoro::Task<std::expected<OJSubmitForm, QString>> parseProblemSubmitForm(const QByteArray &content);
+    static QCoro::Task<std::expected<OJSubmitResponse, QString>> parseProblemSubmitResponse(const QByteArray &content);
 };
 
 

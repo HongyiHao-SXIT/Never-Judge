@@ -5,7 +5,6 @@
 
 /**
  * An easy way to run commands in the terminal.
- * TODO: This is designed for Linux only currently.
  */
 class Command {
     QString cmd;

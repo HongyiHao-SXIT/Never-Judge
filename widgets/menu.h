@@ -18,17 +18,19 @@ signals:
     void runCode();
     void saveFile();
     void openFolder(const QString &folderPath);
-    /* Create a new file (at the root of the project) */
+    /** Create a new file (at the root of the project) */
     void newFile();
-    /* Create a new folder (at the root of the project) */
+    /** Create a new folder (at the root of the project) */
     void newFolder();
-    /* Login to OJ */
+    /** Open the settings */
+    void openSettings();
+    /** Login to OJ */
     void loginOJ();
-    /* Download from OJ */
+    /** Download from OJ */
     void downloadOJ();
-    /* Batch download from OJ */
+    /** Batch download from OJ */
     void batchDownloadOJ();
-    /* Submit the code to OJ */
+    /** Submit the code to OJ */
     void submitOJ();
 
 private slots:
@@ -36,6 +38,7 @@ private slots:
     void onOpenFolder();
     void onNewFile();
     void onNewFolder();
+    void onOpenSettings();
     void onLoginOJ();
     void onDownloadOJ();
     void onBatchDownloadOJ();

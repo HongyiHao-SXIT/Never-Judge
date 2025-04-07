@@ -34,6 +34,7 @@ public:
 
 public slots:
     void openFolder(const QString &folder) const;
+    void openSettings();
     void runCurrentCode() const;
     void submitCurrentCode() const;
 };

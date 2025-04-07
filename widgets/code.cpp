@@ -6,6 +6,8 @@
 #include "../ide/highlighter.h"
 #include "code.h"
 
+#include "footer.h"
+
 /* Welcome widget */
 
 WelcomeWidget::WelcomeWidget(QWidget *parent) : QPlainTextEdit(parent) { setup(); }
@@ -137,13 +139,23 @@ void CodeEditWidget::readFile() {
         qWarning() << "CodeEditWidget::readFile: Failed to open file " << file.filePath();
         return;
     }
-    QString buffer;
+    // check if the file is binary
+    auto bytes = qfile.read(100);
+    for (const auto &byte: bytes) {
+        if (byte < 0x20 && byte != '\n' && byte != '\r' && byte != '\t') {
+            setReadOnly(true);
+            setPlainText(tr("文件格式不支持"));
+            qfile.close();
+            return;
+        }
+    }
 
+    QString buffer;
     if (qfile.size() > MAX_BUFFER_SIZE) {
         buffer = tr("文件过大，无法在编辑器内打开");
         setReadOnly(true);
     } else {
-        buffer = qfile.readAll();
+        buffer = bytes + qfile.readAll();
     }
     setPlainText(buffer);
     qfile.close();
@@ -164,12 +176,9 @@ bool CodeEditWidget::askForSave() {
     if (!modified) {
         return true;
     }
-
     // if the content is modified, ask for save
-
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(this, tr("保存文件"), tr("文件已修改，是否保存？"),
-                                  QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+    QMessageBox::StandardButton reply = QMessageBox::question(this, tr("保存文件"), tr("文件已修改，是否保存？"),
+                                                              QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
     if (reply == QMessageBox::Yes) {
         saveFile();
     } else if (reply == QMessageBox::Cancel) {
@@ -181,7 +190,7 @@ bool CodeEditWidget::askForSave() {
 void CodeEditWidget::onTextChanged() {
     if (!modified) {
         modified = true;
-        modify();
+        emit modify();
     }
 }
 
@@ -190,6 +199,7 @@ void CodeEditWidget::onTextChanged() {
 CodeTabWidget::CodeTabWidget(QWidget *parent) : QTabWidget(parent) {
     setup();
     welcome();
+    connect(this, &QTabWidget::currentChanged, this, &CodeTabWidget::onCurrentTabChanged);
 }
 
 void CodeTabWidget::clearAll() {
@@ -291,4 +301,9 @@ void CodeTabWidget::save() {
         // recover the tab title
         setTabText(currentIndex(), edit->getTabText());
     }
+}
+
+void CodeTabWidget::onCurrentTabChanged(int) const {
+    const auto *edit = curEdit();
+    FooterWidget::instance().setFileLabel(edit ? edit->getFile().filePath() : "");
 }

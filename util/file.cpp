@@ -134,9 +134,10 @@ void ConfigManager::saveConfig() {
     fileWatcher.addPath(PATH);
 }
 
-QVariant ConfigManager::get(const QString &key) const {
+QVariant ConfigManager::get(const QString &key, const QVariant &defaultValue) const {
     QMutexLocker locker(&mutex);
-    return config.value(key).toVariant();
+    auto value = config.value(key);
+    return value.isNull() ? defaultValue : value;
 }
 
 QJsonObject ConfigManager::getAll() const {

@@ -20,7 +20,7 @@ class TerminalWidget : public QWidget {
 public:
     explicit TerminalWidget(QWidget *parent = nullptr);
     void setProject(const Project *project);
-    void runCmd(const Command &command);
+    void runCmd(const Command &command) const;
 };
 
 #endif // TERMINAL_H
