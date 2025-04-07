@@ -1,9 +1,11 @@
+import sys
 import argparse
 
 try:
     import requests
 except ImportError:
-    raise ImportError("Please install requests module: pip install requests")
+    sys.stderr.write("Please install requests module: pip install requests")
+    exit(1)
 
 arg = argparse.ArgumentParser()
 arg.add_argument(
@@ -41,21 +43,26 @@ if namespace.email and namespace.password:
         try:
             result = response.json()
             if result.get("result") != "SUCCESS":
-                raise Exception("Login Failed! ", result.get("message"))
+                sys.stderr.write(result.get("message"))
+                exit(1)
         except ValueError:
-            raise Exception("Could not parse JSON response from login.")
+            sys.stderr.write("Could not parse JSON response from login.")
+            exit(1)
     else:
-        raise Exception("OJ returns bad status code", response.status_code, "when trying to login.")
+        sys.stderr.write("OJ returns bad status code: " + str(response.status_code) + " when trying to login.")
+        exit(1)
 
 if namespace.method == "get":
     response = session.get(namespace.url)
 else:
     params = eval(namespace.params)
     if not isinstance(params, dict):
-        raise Exception("Request params must be a dictionary.")
+        sys.stderr.write("Request params must be a dictionary.")
+        exit(1)
     response = session.post(namespace.url, data=params)
 
 if response.status_code == 200:
     print(response.text)
 else:
-    raise Exception("Request failed with status code", response.status_code)
+    sys.stderr.write("Request failed with status code", response.status_code)
+    exit(1)

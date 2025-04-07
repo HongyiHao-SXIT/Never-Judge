@@ -11,7 +11,8 @@ if len(sys.argv) == 1:
 else:
     file = sys.argv[1]
 if not os.path.exists(file):
-    raise Exception(f"File {file} does not exist")
+    sys.stderr.write(f"File {file} does not exist")
+    exit(1)
 
 with open(file, 'r', encoding='utf-8') as f:
     content = f.read()

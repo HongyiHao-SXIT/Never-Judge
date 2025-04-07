@@ -33,6 +33,7 @@ class OpenJudgePreviewWidget : public QWidget {
 signals:
     void previewPagesReset();
     void currentIndexChanged();
+    void loginAs(const QString &username);
 
 private slots:
     void incrementIndex();

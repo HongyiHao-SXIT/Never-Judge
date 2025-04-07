@@ -1,10 +1,13 @@
 #ifndef MENUBAR_H
 #define MENUBAR_H
 
+#include <QLabel>
 #include <QMenuBar>
 
 class MenuBarWidget : public QMenuBar {
     Q_OBJECT
+
+    QLabel *user;
 
     using SlotFunc = void (MenuBarWidget::*)();
 
@@ -37,6 +40,9 @@ private slots:
     void onDownloadOJ();
     void onBatchDownloadOJ();
     void onSubmitOJ();
+
+public slots:
+    void onLogin(const QString& username) ;
 
 public:
     explicit MenuBarWidget(QWidget *parent = nullptr);

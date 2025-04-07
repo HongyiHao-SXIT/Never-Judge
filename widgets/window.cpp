@@ -83,6 +83,7 @@ void IDEMainWindow::connectSignals() {
     connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview, &OpenJudgePreviewWidget::batchDownloadOJ);
     connect(menuBar, &MenuBarWidget::loginOJ, ojPreview, &OpenJudgePreviewWidget::loginOJ);
     connect(menuBar, &MenuBarWidget::submitOJ, this, &IDEMainWindow::submitCurrentCode);
+    connect(ojPreview, &OpenJudgePreviewWidget::loginAs, menuBar, &MenuBarWidget::onLogin);
 }
 
 void IDEMainWindow::openFolder(const QString &folder) const {

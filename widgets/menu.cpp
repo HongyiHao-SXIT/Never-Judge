@@ -6,8 +6,6 @@
 
 #include "menu.h"
 
-#include <QLabel>
-
 MenuBarWidget::MenuBarWidget(QWidget *parent) : QMenuBar(parent) { setup(); }
 
 void MenuBarWidget::newAction(QMenu *menu, const QString &title, const QKeySequence &shortcut, SlotFunc slot) {
@@ -36,9 +34,11 @@ void MenuBarWidget::setup() {
     newAction(ojMenu, "下载", QKeySequence(), &MenuBarWidget::onDownloadOJ);
     newAction(ojMenu, "批量下载", QKeySequence(), &MenuBarWidget::onBatchDownloadOJ);
     newAction(ojMenu, "提交", QKeySequence(), &MenuBarWidget::onSubmitOJ);
-    // TODO: Show user here
-    // auto label = new QLabel("Welcome", this);
-    // this->setCornerWidget(label);
+
+    // show username here
+    user = new QLabel(tr("未登录"), this);
+    user->setStyleSheet("padding: 10px");
+    setCornerWidget(user);
 }
 
 void MenuBarWidget::onSave() { emit saveFile(); }
@@ -62,3 +62,8 @@ void MenuBarWidget::onDownloadOJ() { emit downloadOJ(); }
 void MenuBarWidget::onBatchDownloadOJ() { emit batchDownloadOJ(); }
 
 void MenuBarWidget::onSubmitOJ() { emit submitOJ(); }
+
+void MenuBarWidget::onLogin(const QString &username)  {
+    user->setText(username);
+    setCornerWidget(user);
+}

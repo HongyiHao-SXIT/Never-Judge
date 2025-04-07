@@ -176,6 +176,8 @@ QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
         warning(res.error());
         co_return;
     }
+    QMessageBox::information(this, tr("登录成功"), tr("欢迎，") + email);
+    emit loginAs(email);
 }
 
 class SubmitFromDialog : public QDialog {
