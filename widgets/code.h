@@ -86,6 +86,8 @@ public slots:
     void removeCodeEditRequested(int index);
     /* What to do when a widget is modified */
     void widgetModified(int index);
+    /* What to do when current tab changed */
+    void onCurrentTabChanged(int index) const;
 
 public:
     explicit CodeTabWidget(QWidget *parent);

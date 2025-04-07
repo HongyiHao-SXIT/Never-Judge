@@ -2,16 +2,18 @@
 #define ICON_NAV_H
 
 #include <QPushButton>
-#include <QWidget>
+#include <QVBoxLayout>
+#include <QFrame>
 
-class IconNavigateWidget : public QWidget {
+class IconNavigateWidget : public QFrame {
     Q_OBJECT
 
-    QLayout *layout;
-    QList<QPushButton *> buttons;
+    void setup();
 
 protected:
-    void setup();
+    QVBoxLayout *layout;
+    QList<QPushButton *> buttons;
+
     QPushButton *newIcon(const QString &iconPath, const QString &tooltip);
 
 public:
@@ -25,12 +27,14 @@ class LeftIconNavigateWidget : public IconNavigateWidget {
 
 private slots:
     void onToggleFileTree(bool checked);
+    void onToggleTerminal(bool checked);
 
 public:
     explicit LeftIconNavigateWidget(QWidget *parent = nullptr);
 
 signals:
     void toggleFileTree(bool show);
+    void toggleTerminal(bool show);
 };
 
 class RightIconNavigateWidget : public IconNavigateWidget {

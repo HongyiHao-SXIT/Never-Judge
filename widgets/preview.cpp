@@ -169,11 +169,13 @@ QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
     auto [email, password] = dialog.getCredentials();
     if (email.isEmpty() || password.isEmpty()) {
         warning(tr("邮箱和密码不能为空"));
+        co_await loginOJ();
         co_return;
     }
     auto res = co_await Crawler::instance().login(email, password);
     if (!res.has_value()) {
         warning(res.error());
+        co_await loginOJ();
         co_return;
     }
     QMessageBox::information(this, tr("登录成功"), tr("欢迎，") + email);

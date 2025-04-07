@@ -31,6 +31,7 @@ void MenuBarWidget::setup() {
     // OJ menu
     QMenu *ojMenu = this->addMenu("OpenJudge");
     newAction(ojMenu, "登录", QKeySequence(), &MenuBarWidget::onLoginOJ);
+    ojMenu->addSeparator();
     newAction(ojMenu, "下载", QKeySequence(), &MenuBarWidget::onDownloadOJ);
     newAction(ojMenu, "批量下载", QKeySequence(), &MenuBarWidget::onBatchDownloadOJ);
     newAction(ojMenu, "提交", QKeySequence(), &MenuBarWidget::onSubmitOJ);

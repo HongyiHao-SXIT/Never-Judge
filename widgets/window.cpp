@@ -13,7 +13,9 @@ IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWin
     codeTab = new CodeTabWidget(this);
     menuBar = new MenuBarWidget(this);
     ojPreview = new OpenJudgePreviewWidget(this);
-    footer = new FooterWidget(this);
+    footer = &FooterWidget::instance();
+
+    terminal->setVisible(false);
     ojPreview->setVisible(false);
 
     setup();
@@ -42,8 +44,8 @@ void IDEMainWindow::setup() {
     hSplitter->addWidget(ojPreview);
 
     hSplitter->setStretchFactor(0, 1);
-    hSplitter->setStretchFactor(1, 3);
-    hSplitter->setStretchFactor(2, 1);
+    hSplitter->setStretchFactor(1, 4);
+    hSplitter->setStretchFactor(2, 2);
 
     auto *vSplitter = new QSplitter(Qt::Vertical, this);
     vSplitter->addWidget(hSplitter);
@@ -64,6 +66,7 @@ void IDEMainWindow::setup() {
 void IDEMainWindow::connectSignals() {
     // Icon navigate
     connect(leftNav, &LeftIconNavigateWidget::toggleFileTree, fileTree, &FileTreeWidget::setVisible);
+    connect(leftNav, &LeftIconNavigateWidget::toggleTerminal, terminal, &TerminalWidget::setVisible);
     connect(rightNav, &RightIconNavigateWidget::togglePreview, ojPreview, &OpenJudgePreviewWidget::setVisible);
 
     // File system
@@ -79,7 +82,9 @@ void IDEMainWindow::connectSignals() {
     connect(menuBar, &MenuBarWidget::runCode, this, &IDEMainWindow::runCurrentCode);
 
     // OJ
+    connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview, [this] { ojPreview->setVisible(true); });
     connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview, &OpenJudgePreviewWidget::downloadOJ);
+    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview, [this] { ojPreview->setVisible(true); });
     connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview, &OpenJudgePreviewWidget::batchDownloadOJ);
     connect(menuBar, &MenuBarWidget::loginOJ, ojPreview, &OpenJudgePreviewWidget::loginOJ);
     connect(menuBar, &MenuBarWidget::submitOJ, this, &IDEMainWindow::submitCurrentCode);
@@ -92,10 +97,14 @@ void IDEMainWindow::openFolder(const QString &folder) const {
     ide->setProject(project);
     codeTab->clearAll();
     fileTree->setRoot(project.getRoot());
+    ojPreview->clear();
     terminal->setProject(&ide->curProject());
 }
 
 void IDEMainWindow::runCurrentCode() const {
+    // awake the terminal
+    terminal->setVisible(true);
+
     FileInfo file = codeTab->currentFile();
 
     if (!file.isValid()) {
