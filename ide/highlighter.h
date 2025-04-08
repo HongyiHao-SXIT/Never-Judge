@@ -42,7 +42,7 @@ class Highlighter : public QSyntaxHighlighter {
 
 private slots:
     void onContentsChanged(int, int, int);
-    void readRules(QJsonObject settings);
+    void readRules(const QJsonValue& jsonRules);
 
 public:
     Highlighter(const TSLanguage *language, QString langName, QTextDocument *parent) ;

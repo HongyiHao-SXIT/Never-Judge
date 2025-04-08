@@ -2,7 +2,6 @@
 #define SETTINGS_H
 
 #include <QDialog>
-#include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QStackedWidget>
@@ -14,10 +13,6 @@ class SettingsDialog : public QDialog {
 
     void createNavigationList();
     void createPages();
-    QWidget *createGeneralPage();
-    QWidget *createAppearancePage();
-    QWidget *createNetworkPage();
-    QWidget *createAdvancedPage();
 
 public:
     explicit SettingsDialog(QWidget *parent = nullptr);

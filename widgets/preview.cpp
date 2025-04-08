@@ -156,6 +156,7 @@ class LoginDialog : public QDialog {
         layout->addWidget(rememberMeCheckBox);
 
         auto reminder = new QLabel(tr("为了保证账号安全，不支持记住密码"), this);
+        reminder->setAlignment(Qt::AlignCenter);
         reminder->setStyleSheet("color: #999999");
         layout->addWidget(reminder);
 
@@ -167,8 +168,8 @@ class LoginDialog : public QDialog {
         setLayout(layout);
     }
 
-    void readRemembered() {
-        QString email = ConfigManager::instance().get("email", "").toString();
+    void readRemembered() const {
+        QString email = Configs::instance().get("email").toString();
         emailEdit->setText(email);
         rememberMeCheckBox->setChecked(!email.isEmpty());
     }
@@ -206,7 +207,7 @@ QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
         co_return;
     }
     QMessageBox::information(this, tr("登录成功"), tr("欢迎，") + email);
-    ConfigManager::instance().set("email", dialog.rememberMe() ? email : "");
+    Configs::instance().set("email", dialog.rememberMe() ? email : "");
 
     emit loginAs(email);
 }

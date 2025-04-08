@@ -7,6 +7,7 @@
 #include <QMutex>
 
 QFile loadRes(const QString &path);
+QIcon loadIcon(const QString &path);
 
 class TempFiles {
 public:
@@ -20,30 +21,51 @@ public:
     static std::unique_ptr<QFile> create(const TempId &id = "", const QString &content = "");
 };
 
-class ConfigManager : public QObject {
+class Configs : public QObject {
     Q_OBJECT
 
-    explicit ConfigManager(QObject *parent = nullptr);
-    void loadConfig();
-    void saveConfig();
+    explicit Configs(QObject *parent = nullptr);
+    static QJsonObject loadConfig();
+    static void saveConfig(const QJsonObject &config);
 
     QJsonObject config;
+    QJsonObject defaultConfig;
     // use mutex for threading safe
     mutable QMutex mutex;
-    QFileSystemWatcher fileWatcher;
+    QFileSystemWatcher watcher;
     static const QString PATH;
 
 public:
-    static ConfigManager &instance();
+    static Configs &instance();
     static void clear();
-    QVariant get(const QString &key, const QVariant &defaultValue) const;
+    QJsonValue get(const QString &key) const;
     QJsonObject getAll() const;
-
     void set(const QString &key, const QVariant &value);
-    void setBatch(const QJsonObject &config);
+
+    /** this will send a configValueChanged signal. */
+    void manuallyUpdate(const QString &key);
+    /** Bind the config key with the slot.
+     * When the value of key changed, the slot will be waked up. */
+    template<class W, class V>
+    static void bindHotUpdateOn(W *widget, const QString &key, void (W::*slot)(const V& value));
+
+public slots:
+    void checkChangedConfig(const QJsonObject &newConfig);
 
 signals:
     void configChanged(const QJsonObject &newConfig);
+    void configValueChanged(const QString &key, const QJsonValue &value);
 };
+
+template<class W, class V>
+void Configs::bindHotUpdateOn(W *widget, const QString &key, void (W::*slot)(const V& value)) {
+    QObject::connect(&instance(), &Configs::configValueChanged, widget,
+                     [key, widget, slot](const QString &k, const QJsonValue &v) {
+                         if (k == key) {
+                             (widget->*slot)(v.toVariant().value<V>()); // wake up the slot
+                         }
+                     });
+}
+
 
 #endif // FILE_H

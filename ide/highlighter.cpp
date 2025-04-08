@@ -14,9 +14,9 @@ Highlighter::Highlighter(const TSLanguage *language, QString langName, QTextDocu
     ts_parser_set_language(parser, language);
 
     queries.clear();
-    readRules(ConfigManager::instance().getAll());
 
-    connect(&ConfigManager::instance(), &ConfigManager::configChanged, this, &Highlighter::readRules);
+    Configs::bindHotUpdateOn(this, "highlightRules", &Highlighter::readRules);
+    Configs::instance().manuallyUpdate("highlightRules");
     connect(document(), &QTextDocument::contentsChange, this, &Highlighter::onContentsChanged);
 }
 
@@ -89,18 +89,16 @@ void Highlighter::highlightBlock(const QString &text) {
 
 void Highlighter::onContentsChanged(int, int, int) { parseDocument(); }
 
-void Highlighter::readRules(QJsonObject settings) {
-    static auto key = "highlightRules";
-    if (!settings.contains(key) || !settings[key].isArray()) {
-        qWarning() << "No highlight rules found in settings.";
+// FIXME: Cannot hot update. Maybe we should create a new highlighter here?
+void Highlighter::readRules(const QJsonValue &jsonRules) {
+    if (!jsonRules.isArray()) {
+        qDebug() << "readRules: HighlightRules is not an array";
         return;
     }
-    rules.clear();
-    auto arrays = settings.value(key).toArray();
-    for (const auto &array: arrays) {
+    for (const auto &array: jsonRules.toArray()) {
         auto obj = array.toObject();
         if (!obj.contains("pattern")) {
-            qWarning() << "Invalid highlight rule format on key: " << key;
+            qWarning() << "Invalid highlight rule format on: " << array.toString();
             continue;
         }
         if (obj.contains("language")) {

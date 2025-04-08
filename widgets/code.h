@@ -28,20 +28,22 @@ class CodeEditWidget : public QPlainTextEdit {
     QWidget *lineNumberArea;
 
     void setup();
-    /* Highlight the code between the given lines */
+    /** Highlight the code between the given lines */
     void highlightCode(int line1, int col1, int line2, int col2, QColor color);
     // friend functions for line number area
     int LNAWidth() const;
     void LNAEvent(QPaintEvent *event) const;
 
 private slots:
-    /* Adapt the viewport margins */
+    /** Font setter for configs */
+    void onSetFont(const QJsonValue &value);
+    /** Adapt the viewport margins */
     void adaptViewport();
-    /* Update the line number area when the content changes */
+    /** Update the line number area when the content changes */
     void updateLineNumberArea(const QRect &rect, int dy);
-    /* Highlight the line where the cursor is */
+    /** Highlight the line where the cursor is */
     void highlightLine();
-    /* What to do when the text is modified */
+    /** What to do when the text is modified */
     void onTextChanged();
 
 signals:
@@ -53,7 +55,6 @@ protected:
 public:
     CodeEditWidget(const QString &filename, QWidget *parent);
 
-    static QFont font;
     const FileInfo &getFile() const;
 
     QString getTabText() const;

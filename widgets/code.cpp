@@ -6,6 +6,7 @@
 #include "../ide/highlighter.h"
 #include "code.h"
 
+#include "../util/file.h"
 #include "footer.h"
 
 /* Welcome widget */
@@ -34,8 +35,6 @@ protected:
 const int LineNumberArea::L_MARGIN = 5;
 const int LineNumberArea::R_MARGIN = 5;
 
-QFont CodeEditWidget::font("Consolas", 15);
-
 CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) : QPlainTextEdit(parent) {
     lineNumberArea = new LineNumberArea(this);
     file = FileInfo(filename);
@@ -53,9 +52,16 @@ CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) : QPlai
 }
 
 void CodeEditWidget::setup() {
+    Configs::bindHotUpdateOn(this, "codeFont", &CodeEditWidget::onSetFont);
+    Configs::instance().manuallyUpdate("codeFont");
+}
+
+void CodeEditWidget::onSetFont(const QJsonValue &fontJson) {
+    QJsonObject obj = fontJson.toObject();
+    QFont font;
+    font.setFamily(obj["family"].toString());
+    font.setPointSize(obj["size"].toInt());
     setFont(font);
-    // Set tab size to 4 spaces
-    setTabStopDistance(fontMetrics().horizontalAdvance(' ') * 4);
 }
 
 void CodeEditWidget::resizeEvent(QResizeEvent *event) {

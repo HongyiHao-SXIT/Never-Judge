@@ -1,4 +1,10 @@
 {
+  "email": "",
+  "codeFont": {
+    "family": "Consolas",
+    "size": 15
+  },
+  "terminalTheme": "BreezeModified",
   "highlightRules": [
     {
       "pattern": "(identifier) @identifier",

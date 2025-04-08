@@ -13,7 +13,7 @@ Command Command::merge(const Command &other) const { return {cmd + " && " + othe
 
 Command Command::clearScreen() { return {"clear"}; }
 
-Command Command::changeDirectory(const QString &dir) { return {"cd " + dir}; }
+Command Command::changeDirectory(const QString &dir) { return {"cd '" + dir + "'"}; }
 
 Command Command::runFile(const FileInfo &file) {
     Command cd = changeDirectory(file.absolutePath());

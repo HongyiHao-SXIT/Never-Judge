@@ -1,21 +1,34 @@
 #include "terminal.h"
-#include <QApplication>
 #include <QLayout>
 #include <QtDebug>
+
+#include "../util/file.h"
 
 class MyShell : public QTermWidget {
     Q_OBJECT
 
-    void setup() {
-        QIcon::setThemeName(QStringLiteral("oxygen"));
-        QFont font = QApplication::font();
-        font.setFamily(QStringLiteral("Consolas"));
-        font.setPointSize(12);
-        this->setTerminalFont(font);
-        qDebug() << " availableColorSchemes:" << availableColorSchemes();
-        this->setColorScheme("BreezeModified");
+private slots:
+    void setFont(const QJsonValue& fontJson) {
+        QJsonObject obj = fontJson.toObject();
+        QFont font;
+        font.setFamily(obj["family"].toString());
+        font.setPointSize(obj["size"].toInt() - 3);  // a little smaller
+        setTerminalFont(font);
+    }
 
-        this->setScrollBarPosition(ScrollBarRight);
+    void setColorScheme(const QString &name) override {
+        qDebug() << "setColorScheme"<< name;
+        QTermWidget::setColorScheme(name);
+    }
+
+    void setup() {
+        QIcon::setThemeName("oxygen");
+
+        Configs::bindHotUpdateOn(this, "codeFont", &MyShell::setFont);
+        Configs::instance().manuallyUpdate("codeFont");
+        Configs::bindHotUpdateOn(this,"terminalTheme", &MyShell::setColorScheme);
+        Configs::instance().manuallyUpdate("terminalTheme");
+        setScrollBarPosition(ScrollBarRight);
     }
 
 public:
