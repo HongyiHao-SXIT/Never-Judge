@@ -7,7 +7,7 @@
 #include "../ide/project.h"
 #include "fileTree.h"
 
-class WelcomeWidget : public QPlainTextEdit {
+class WelcomeWidget : public QWidget {
     Q_OBJECT
     void setup();
 
@@ -32,7 +32,7 @@ class CodeEditWidget : public QPlainTextEdit {
     void highlightCode(int line1, int col1, int line2, int col2, QColor color);
     // friend functions for line number area
     int LNAWidth() const;
-    void LNAEvent(QPaintEvent *event) const;
+    void LNAEvent(const QPaintEvent *event) const;
 
 private slots:
     /** Font setter for configs */
@@ -45,12 +45,16 @@ private slots:
     void highlightLine();
     /** What to do when the text is modified */
     void onTextChanged();
+    /** update the cursor position (and tell it to highlighter) */
+    void updateCursorPosition() const;
+
 
 signals:
     void modify();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
+    void keyPressEvent(QKeyEvent *e) override;
 
 public:
     CodeEditWidget(const QString &filename, QWidget *parent);

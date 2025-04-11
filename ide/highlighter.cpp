@@ -12,11 +12,10 @@ Highlighter::Highlighter(const TSLanguage *language, QString langName, QTextDocu
     QSyntaxHighlighter(parent), language(language), langName(std::move(langName)) {
     parser = ts_parser_new();
     ts_parser_set_language(parser, language);
-
     queries.clear();
-
     Configs::bindHotUpdateOn(this, "highlightRules", &Highlighter::readRules);
     Configs::instance().manuallyUpdate("highlightRules");
+    setupBracketQuery();
     connect(document(), &QTextDocument::contentsChange, this, &Highlighter::onContentsChanged);
 }
 
@@ -54,8 +53,8 @@ QPair<TSLanguage *, QString> Highlighter::toTSLanguage(Language language) {
 
 Highlighter::~Highlighter() {
     disconnect(document(), &QTextDocument::contentsChange, this, &Highlighter::onContentsChanged);
-    if (lastTree) {
-        ts_tree_delete(lastTree);
+    if (tree) {
+        ts_tree_delete(tree);
     }
     for (auto &[query, cursor, rule]: queries) {
         if (cursor)
@@ -65,6 +64,36 @@ Highlighter::~Highlighter() {
     }
     if (parser)
         ts_parser_delete(parser);
+    if (bracketCursor)
+        ts_query_cursor_delete(bracketCursor);
+    if (bracketQuery)
+        ts_query_delete(bracketQuery);
+}
+
+void Highlighter::setupBracketQuery() {
+    const char *queryPattern = "(\"(\" @leftb \")\" @right) "
+                               "(\"(\" @leftb \")\" @right) "
+                               "(\"{\" @leftb \"}\" @right) "
+                               "(\"[\" @leftb \"]\" @right)";
+
+    uint32_t errorOffset;
+    TSQueryError errorType;
+    bracketQuery = ts_query_new(language, queryPattern, strlen(queryPattern), &errorOffset, &errorType);
+
+    if (!bracketQuery) {
+        qWarning() << "Failed to create bracket query for language" << langName << "at offset" << errorOffset
+                   << "with error" << errorType;
+        return;
+    }
+
+    bracketCursor = ts_query_cursor_new();
+}
+
+void Highlighter::setCursorPosition(int pos) {
+    if (currentCursorPos != pos) {
+        currentCursorPos = pos;
+        rehighlight();
+    }
 }
 
 void Highlighter::highlightBlock(const QString &text) {
@@ -81,20 +110,102 @@ void Highlighter::highlightBlock(const QString &text) {
             int highlightEnd = qMin(end - blockPos, blockLen);
 
             if (highlightStart < highlightEnd) {
-                setFormat(highlightStart, highlightEnd - highlightStart, *result.strFormat);
+                setFormat(highlightStart, highlightEnd - highlightStart, result.strFormat);
+            }
+        }
+    }
+    // highlightBracketPairs(text);
+}
+
+QTextCharFormat Highlighter::matchFormat(QTextCharFormat format) {
+    format.setFontWeight(QFont::Bold);
+    format.setTextOutline(QPen(0xDD5500));
+    return format;
+}
+
+void Highlighter::highlightBracketPairs(const QString &text) {
+    if (!bracketQuery || !bracketCursor || currentCursorPos == -1)
+        return;
+
+    int blockPos = currentBlock().position();
+    int cursorPosInBlock = currentCursorPos - blockPos - 1;
+    if (cursorPosInBlock < 0 || cursorPosInBlock >= text.length())
+        return;
+
+    QChar cursorChar = text.at(cursorPosInBlock);
+    if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' && cursorChar != '[' &&
+        cursorChar != ']') {
+        return;
+    }
+
+    auto utf8Content = document()->toPlainText().toUtf8();
+
+    TSNode root = ts_tree_root_node(tree);
+    ts_query_cursor_exec(bracketCursor, bracketQuery, root);
+
+    TSQueryMatch match;
+
+    while (ts_query_cursor_next_match(bracketCursor, &match)) {
+        uint32_t leftPos = 0, rightPos = 0;
+        bool hasLeft = false, hasRight = false;
+
+        for (uint32_t i = 0; i < match.capture_count; ++i) {
+            uint32_t id = match.captures[i].index;
+            TSNode node = match.captures[i].node;
+            uint32_t length = 5;
+            auto name = ts_query_capture_name_for_id(bracketQuery, id, &length);
+            if (!name) {
+                continue;
+            }
+            if (strcmp(name, "leftb") == 0) {
+                leftPos = ts_node_start_byte(node);
+                hasLeft = true;
+            } else if (strcmp(name, "right") == 0) {
+                rightPos = ts_node_start_byte(node);
+                hasRight = true;
+            }
+        }
+
+        if (hasLeft && hasRight) {
+            int leftCharPos = byteToCharPosition(leftPos, utf8Content);
+            int rightCharPos = byteToCharPosition(rightPos, utf8Content);
+
+            int left = leftCharPos - blockPos;
+            int right = rightCharPos - blockPos;
+
+            if (cursorPosInBlock == left || cursorPosInBlock == right) {
+                // TODO: Bracket cross lines?
+                // QTextBlock block = currentBlock();
+                // bool thisLine = true;
+                //
+                // while (leftCharPos - block.position() < 0) {
+                //     block = block.previous();
+                //     thisLine = false;
+                // }
+                // block = currentBlock();
+                // while (rightCharPos - block.position() >= block.length()) {
+                //     block = block.next();
+                //     thisLine = false;
+                // }
+
+                setFormat(left, 1, matchFormat(format(left)));
+                setFormat(right, 1, matchFormat(format(right)));
+                break;
             }
         }
     }
 }
 
+
 void Highlighter::onContentsChanged(int, int, int) { parseDocument(); }
 
-// FIXME: Cannot hot update. Maybe we should create a new highlighter here?
 void Highlighter::readRules(const QJsonValue &jsonRules) {
     if (!jsonRules.isArray()) {
         qDebug() << "readRules: HighlightRules is not an array";
         return;
     }
+
+    // read highlight rules from json
     for (const auto &array: jsonRules.toArray()) {
         auto obj = array.toObject();
         if (!obj.contains("pattern")) {
@@ -146,10 +257,11 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
 
         for (const auto &p: patterns) {
             auto pattern = p.toString();
-            rules.append({pattern, format});
+            rules.emplace_back(pattern, format);
         }
     }
 
+    // create queries from rules
     for (auto &[pattern, format]: rules) {
         // We still do not support error messages
         uint32_t errorOffset;
@@ -160,19 +272,20 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
             continue;
         }
         auto cursor = ts_query_cursor_new();
-        queries.append({query, cursor, format});
+        queries.emplace_back(query, cursor, format);
     }
 }
 
 void Highlighter::parseDocument() {
 
-    QString docContent = document()->toPlainText();
-    QByteArray utf8Content = docContent.toUtf8();
+    auto utf8Content = document()->toPlainText().toUtf8();
 
     // FIXME: use old tree here for better performance
 
-    auto tree = ts_parser_parse_string(parser, lastTree, utf8Content.constData(), utf8Content.size());
-    // lastTree = tree;  // If uncomment the code, it would not work!
+    if (tree) {
+        ts_tree_delete(tree);
+    }
+    tree = ts_parser_parse_string(parser, nullptr, utf8Content.constData(), utf8Content.size());
 
     TSNode root = ts_tree_root_node(tree);
     results.clear();
@@ -189,26 +302,22 @@ void Highlighter::parseDocument() {
                 uint32_t endByte = ts_node_end_byte(node);
 
                 // Convert byte offsets to character positions
-                int startPos = byteToCharPosition(startByte, utf8Content, docContent);
-                int endPos = byteToCharPosition(endByte, utf8Content, docContent);
+                int startPos = byteToCharPosition(startByte, utf8Content);
+                int endPos = byteToCharPosition(endByte, utf8Content);
                 strRanges.emplace_back(startPos, endPos);
             }
         }
-        results.append({strRanges, &format});
-    }
-
-    if (lastTree && lastTree != tree) {
-        ts_tree_delete(lastTree);
+        results.emplace_back(strRanges, std::move(format));
     }
 
     rehighlight();
 }
 
-int Highlighter::byteToCharPosition(uint32_t bytePos, const QByteArray &utf8, const QString &text) {
+int Highlighter::byteToCharPosition(uint32_t bytePos, const QByteArray &utf8) {
     int charPos = 0;
 
-    for (int currentByte = 0; charPos < text.length() && currentByte < bytePos; charPos++) {
-        QChar c = text[charPos];
+    for (int currentByte = 0; charPos < utf8.length() && currentByte < bytePos; charPos++) {
+        QChar c = utf8[charPos];
         currentByte += c.unicode() <= 0x7F ? 1 : c.unicode() <= 0x7FF ? 2 : c.isSurrogate() ? 4 : 3;
     }
 

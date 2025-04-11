@@ -6,14 +6,46 @@
 #include "../ide/highlighter.h"
 #include "code.h"
 
+#include <QVBoxLayout>
+
 #include "../util/file.h"
 #include "footer.h"
 
 /* Welcome widget */
 
-WelcomeWidget::WelcomeWidget(QWidget *parent) : QPlainTextEdit(parent) { setup(); }
+WelcomeWidget::WelcomeWidget(QWidget *parent) : QWidget(parent) { setup(); }
+void WelcomeWidget::setup() {
+    auto *mainLayout = new QVBoxLayout(this);
+    mainLayout->setAlignment(Qt::AlignCenter);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(30);
 
-void WelcomeWidget::setup() { setReadOnly(true); }
+    auto *logoLabel = new QLabel(this);
+    logoLabel->setText(loadText("logo.txt"));
+
+    QFont logoFont("Consolas", 9);
+    logoLabel->setFont(logoFont);
+    logoLabel->setStyleSheet(R"(
+        color: #569CD6;
+        background-color: transparent;
+        margin: 0;
+        padding: 0;
+    )");
+
+    auto *shortcutLabel = new QLabel(this);
+    shortcutLabel->setText("<p style='font-size: 16px; color: #D4D4D4;'>Ctrl+N 新建文件</p>"
+                           "<p style='font-size: 16px; color: #D4D4D4;'>Ctrl+O 打开项目</p>"
+                           "<p style='font-size: 16px; color: #D4D4D4;'>Ctrl+S 保存文件</p>"
+                           "<p style='font-size: 16px; color: #D4D4D4;'>Ctrl+R 运行代码</p>");
+    shortcutLabel->setAlignment(Qt::AlignCenter);
+
+    mainLayout->addStretch();
+    mainLayout->addWidget(logoLabel);
+    mainLayout->addWidget(shortcutLabel);
+    mainLayout->addStretch();
+
+    setLayout(mainLayout);
+}
 
 /* Code plain text edit widget */
 
@@ -45,6 +77,7 @@ CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) : QPlai
     setup();
     adaptViewport();
 
+
     connect(this, &CodeEditWidget::blockCountChanged, this, &CodeEditWidget::adaptViewport);
     connect(this, &CodeEditWidget::updateRequest, this, &CodeEditWidget::updateLineNumberArea);
     connect(this, &CodeEditWidget::cursorPositionChanged, this, &CodeEditWidget::highlightLine);
@@ -61,6 +94,7 @@ void CodeEditWidget::onSetFont(const QJsonValue &fontJson) {
     QFont font;
     font.setFamily(obj["family"].toString());
     font.setPointSize(obj["size"].toInt());
+    setTabStopDistance(3 * font.pointSize());
     setFont(font);
 }
 
@@ -69,6 +103,21 @@ void CodeEditWidget::resizeEvent(QResizeEvent *event) {
 
     QRect cr = contentsRect();
     lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), LNAWidth(), cr.height()));
+}
+
+
+
+void CodeEditWidget::keyPressEvent(QKeyEvent *e) {
+    QPlainTextEdit::keyPressEvent(e);
+    updateCursorPosition();
+}
+
+void CodeEditWidget::updateCursorPosition() const {
+    if (auto *highlighter = document()->findChild<QSyntaxHighlighter *>()) {
+        if (auto *hl = dynamic_cast<Highlighter *>(highlighter)) {
+            hl->setCursorPosition(textCursor().position());
+        }
+    }
 }
 
 void CodeEditWidget::adaptViewport() { setViewportMargins(LNAWidth(), 0, 0, 0); }
@@ -96,29 +145,40 @@ int CodeEditWidget::LNAWidth() const {
         max /= 10;
         ++digits;
     }
-    int fontWidth = fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
+    // at least 3 digits width
+    int fontWidth = fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(digits, 3);
     int marginWidth = LineNumberArea::L_MARGIN + LineNumberArea::R_MARGIN;
     return fontWidth + marginWidth;
 }
-
-void CodeEditWidget::LNAEvent(QPaintEvent *event) const {
+void CodeEditWidget::LNAEvent(const QPaintEvent *event) const {
     QPainter painter(lineNumberArea);
+    painter.fillRect(event->rect(), QColor(0x252526));
+
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();
     int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
     int bottom = top + (int) blockBoundingRect(block).height();
 
+    QFont font = this->font();
+    painter.setFont(font);
+
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
             QString number = QString::number(blockNumber + 1);
-            painter.setPen(Qt::lightGray);
-            painter.drawText(-LineNumberArea::L_MARGIN, top, lineNumberArea->width(), fontMetrics().height(),
+
+            if (blockNumber == textCursor().blockNumber()) {
+                painter.setPen(QColor(0xFFFFFF));
+            } else {
+                painter.setPen(QColor(0x858585));
+            }
+
+            painter.drawText(0, top, lineNumberArea->width() - LineNumberArea::R_MARGIN, fontMetrics().height(),
                              Qt::AlignRight, number);
         }
 
         block = block.next();
         top = bottom;
-        bottom = top + (int) blockBoundingRect(block).height();
+        bottom = top + static_cast<int>(blockBoundingRect(block).height());
         ++blockNumber;
     }
 }
@@ -127,7 +187,7 @@ void CodeEditWidget::highlightLine() {
     QList<QTextEdit::ExtraSelection> selections;
     if (!isReadOnly()) {
         QTextEdit::ExtraSelection selection;
-        QColor lineColor = QColor("#222222").lighter(160);
+        QColor lineColor = QColor(0x222222).lighter(160);
         selection.format.setBackground(lineColor);
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = textCursor();
@@ -140,31 +200,47 @@ void CodeEditWidget::highlightLine() {
 #define MAX_BUFFER_SIZE (1024 * 1024)
 
 void CodeEditWidget::readFile() {
-    QFile qfile(file.filePath());
-    if (!qfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    QFile check(file.filePath());
+    if (!check.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qWarning() << "CodeEditWidget::readFile: Failed to open file " << file.filePath();
         return;
     }
-    // check if the file is binary
-    auto bytes = qfile.read(100);
-    for (const auto &byte: bytes) {
-        if (byte < 0x20 && byte != '\n' && byte != '\r' && byte != '\t') {
-            setReadOnly(true);
-            setPlainText(tr("文件格式不支持"));
-            qfile.close();
-            return;
+
+    // Check if the file is binary
+    QTextStream in(&check);
+    in.setAutoDetectUnicode(true);
+    int lineCnt = 0;
+    while (!in.atEnd()) {
+        auto line = in.readLine();
+        if (++lineCnt > 50) {
+            break;
+        }
+        for (const auto &c: line) {
+            if (!c.isPrint() && !c.isSpace() && !c.isPunct()) {
+                setReadOnly(true);
+                lineNumberArea->setVisible(false);
+                setPlainText(tr("文件格式不支持"));
+                check.close();
+                return;
+            }
         }
     }
 
+    QFile read(file.filePath());
+    if (!read.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "CodeEditWidget::readFile: Failed to open file " << file.filePath();
+        return;
+    }
     QString buffer;
-    if (qfile.size() > MAX_BUFFER_SIZE) {
+    if (read.size() > MAX_BUFFER_SIZE) {
         buffer = tr("文件过大，无法在编辑器内打开");
+        lineNumberArea->setVisible(false);
         setReadOnly(true);
     } else {
-        buffer = bytes + qfile.readAll();
+        buffer = read.readAll();
     }
     setPlainText(buffer);
-    qfile.close();
+    check.close();
 }
 
 void CodeEditWidget::saveFile() {
@@ -205,6 +281,7 @@ void CodeEditWidget::onTextChanged() {
 CodeTabWidget::CodeTabWidget(QWidget *parent) : QTabWidget(parent) {
     setup();
     welcome();
+    connect(this, &QTabWidget::tabCloseRequested, this, &CodeTabWidget::removeCodeEditRequested);
     connect(this, &QTabWidget::currentChanged, this, &CodeTabWidget::onCurrentTabChanged);
 }
 
@@ -218,7 +295,7 @@ void CodeTabWidget::clearAll() {
 void CodeTabWidget::setup() {
     setTabsClosable(true);
     setMovable(true);
-    connect(this, &QTabWidget::tabCloseRequested, this, &CodeTabWidget::removeCodeEditRequested);
+    setStyleSheet(loadText("qss/code.css"));
 }
 
 CodeEditWidget *CodeTabWidget::curEdit() const { return qobject_cast<CodeEditWidget *>(currentWidget()); }

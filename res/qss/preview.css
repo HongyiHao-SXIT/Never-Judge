@@ -1,0 +1,46 @@
+OpenJudgePreviewWidget {
+    background-color: #1E1E1E;
+    border-left: 1px solid #3F3F46;
+}
+
+QLabel {
+    color: #D4D4D4;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QTextEdit {
+    background-color: #252526;
+    color: #D4D4D4;
+    border: 1px solid #3F3F46;
+    border-radius: 4px;
+    padding: 10px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+}
+
+QTextEdit#emptyWidget {
+    background-color: transparent;
+    border: none;
+    color: #858585;
+    font-style: italic;
+}
+
+IconPushButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+IconPushButton:hover {
+    background-color: #3E3E42;
+}
+
+IconPushButton:pressed {
+    background-color: #2A2D2E;
+}
+
+IconPushButton:disabled {
+    opacity: 0.3;
+}

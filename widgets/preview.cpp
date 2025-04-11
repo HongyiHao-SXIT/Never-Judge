@@ -11,6 +11,7 @@
 
 #include "../util/file.h"
 #include "../web/crawl.h"
+#include "footer.h"
 
 class PreviewTextWidget : public QTextEdit {
     Q_OBJECT
@@ -81,6 +82,8 @@ void OpenJudgePreviewWidget::setup() {
     mainLayout->addLayout(textLayout);
 
     setLayout(mainLayout);
+
+    setStyleSheet(loadText("qss/preview.css"));
 }
 
 void OpenJudgePreviewWidget::reset() {
@@ -387,9 +390,16 @@ QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
     }
 
     clear();
-    for (const auto &relativeUrl: urls.value().problemUrls) {
+
+    auto problemUrls = urls.value().problemUrls;
+
+    // show a progress bar
+    ProgressBarTask task = FooterWidget::newTask("正在下载并解析题目", static_cast<int>(problemUrls.length()));
+
+    for (int i = 0; i < problemUrls.length(); i++) {
         // These urls are relative url in the website
-        auto url = match.resolved(relativeUrl);
+        auto url = match.resolved(problemUrls[i]);
+        FooterWidget::instance().updateTask(task, i);
 
         auto problem = co_await downloadAndParse(url);
         if (problem.has_value()) {
@@ -401,6 +411,8 @@ QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
             warning(tr("处理试题 %1 时出错:\n").arg(url.toString()) + problem.error());
         }
     }
+    FooterWidget::instance().finishTask(task);
+
     emit previewPagesReset();
     co_return;
 }

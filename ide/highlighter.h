@@ -21,7 +21,7 @@ struct Query {
 
 struct QueryResult {
     QList<QPair<int, int>> strRanges;
-    QTextCharFormat *strFormat = nullptr;
+    QTextCharFormat strFormat;
 };
 
 class Highlighter : public QSyntaxHighlighter {
@@ -30,24 +30,33 @@ class Highlighter : public QSyntaxHighlighter {
     // Tree-sitter members
     const TSLanguage *language;
     QString langName;
-    TSTree *lastTree = nullptr;
+    TSTree *tree = nullptr;
     TSParser *parser = nullptr;
+
     QList<Query> queries;
     QList<QueryResult> results;
     static QList<HighlightRule> rules;
 
+    int currentCursorPos = -1;
+    TSQuery *bracketQuery = nullptr;
+    TSQueryCursor *bracketCursor = nullptr;
+
     void parseDocument();
-    static int byteToCharPosition(uint32_t bytePos, const QByteArray &utf8, const QString &text);
+    static int byteToCharPosition(uint32_t bytePos, const QByteArray &utf8);
     void highlightBlock(const QString &text) override;
+    void setupBracketQuery();
+    void highlightBracketPairs(const QString &text);
+    static QTextCharFormat matchFormat(QTextCharFormat format);
 
 private slots:
     void onContentsChanged(int, int, int);
-    void readRules(const QJsonValue& jsonRules);
+    void readRules(const QJsonValue &jsonRules);
 
 public:
-    Highlighter(const TSLanguage *language, QString langName, QTextDocument *parent) ;
+    Highlighter(const TSLanguage *language, QString langName, QTextDocument *parent);
     ~Highlighter() override;
     static QPair<TSLanguage *, QString> toTSLanguage(Language language);
+    void setCursorPosition(int pos);
 };
 
 class HighlighterFactory {

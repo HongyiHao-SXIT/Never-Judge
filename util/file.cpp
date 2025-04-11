@@ -9,6 +9,18 @@ QFile loadRes(const QString &path) { return QFile(":/res/" + path); }
 
 QIcon loadIcon(const QString &path) { return QIcon(":/res/" + path); }
 
+QString loadText(const QString &path) {
+    QFile file = loadRes(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "Failed to open res file: " << path;
+        return "";
+    }
+    QString qss = file.readAll();
+    file.close();
+    return qss;
+}
+
+
 const QString TempFiles::PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/never-judge";
 #define TempFileName(id) (PATH + "/temp" + (id.isEmpty() ? "" : "-") + id)
 
@@ -72,6 +84,17 @@ void Configs::clear() {
     QFile file(PATH);
     if (file.exists()) {
         file.remove();
+    }
+}
+
+void Configs::reset() {
+    QFile file(PATH);
+    if (file.exists()) {
+        // clear the text in the file without removing
+        file.open(QIODevice::WriteOnly);
+        file.write("{}");
+        file.flush();
+        file.close();
     }
 }
 
@@ -172,8 +195,7 @@ void Configs::saveConfig(const QJsonObject &config) {
 
 QJsonValue Configs::get(const QString &key) const {
     QMutexLocker locker(&mutex);
-    auto value = config.value(key);
-    return value.isNull() ? defaultConfig.value(key) : value;
+    return config.contains(key) ? config.value(key) : defaultConfig.value(key);
 }
 
 QJsonObject Configs::getAll() const {

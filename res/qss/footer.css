@@ -1,0 +1,26 @@
+FooterWidget {
+    background-color: #252526;
+    color: #D4D4D4;
+    border: none;
+}
+
+QLabel {
+    color: #858585;
+    font-size: 13px;
+}
+
+QProgressBar {
+    background-color: #2D2D30;
+    border: 1px solid #3F3F46;
+    border-radius: 3px;
+    text-align: center;
+    color: #D4D4D4;
+    font-size: 11px;
+    min-width: 150px;
+    max-width: 250px;
+}
+
+QProgressBar::chunk {
+    background-color: #569CD6;
+    border-radius: 2px;
+}

@@ -17,13 +17,10 @@ private slots:
     }
 
     void setColorScheme(const QString &name) override {
-        qDebug() << "setColorScheme"<< name;
         QTermWidget::setColorScheme(name);
     }
 
     void setup() {
-        QIcon::setThemeName("oxygen");
-
         Configs::bindHotUpdateOn(this, "codeFont", &MyShell::setFont);
         Configs::instance().manuallyUpdate("codeFont");
         Configs::bindHotUpdateOn(this,"terminalTheme", &MyShell::setColorScheme);

@@ -4,7 +4,7 @@
     "family": "Consolas",
     "size": 15
   },
-  "terminalTheme": "BreezeModified",
+  "terminalTheme": "DarkPastels",
   "highlightRules": [
     {
       "pattern": "(identifier) @identifier",
@@ -14,6 +14,18 @@
       "language": "cpp",
       "pattern": "(field_identifier) @identifier",
       "foreground": "#ACECFF"
+    },
+    {
+      "pattern": "(\"(\" @left \")\" @right)",
+      "foreground": "#EA80E6"
+    },
+    {
+      "pattern": "(\"[\" @left \"]\" @right)",
+      "foreground": "#27AFFF"
+    },
+    {
+      "pattern": "(\"{\" @left \"}\" @right)",
+      "foreground": "#FFE710"
     },
     {
       "pattern": "(comment) @comment",

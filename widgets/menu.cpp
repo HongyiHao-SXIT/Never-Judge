@@ -6,7 +6,15 @@
 
 #include "menu.h"
 
-MenuBarWidget::MenuBarWidget(QWidget *parent) : QMenuBar(parent) { setup(); }
+#include <QPushButton>
+#include <QVBoxLayout>
+
+#include "../util/file.h"
+
+MenuBarWidget::MenuBarWidget(QWidget *parent) : QMenuBar(parent) {
+    user = new QLabel(tr("未登录"), this);
+    setup();
+}
 
 void MenuBarWidget::newAction(QMenu *menu, const QString &title, const QKeySequence &shortcut, SlotFunc slot) {
     auto *action = new QAction(title, this);
@@ -41,9 +49,22 @@ void MenuBarWidget::setup() {
     newAction(ojMenu, "提交", QKeySequence(), &MenuBarWidget::onSubmitOJ);
 
     // show username here
-    user = new QLabel(tr("未登录"), this);
-    user->setStyleSheet("padding: 10px");
-    setCornerWidget(user);
+    auto *right = new QWidget(this);
+    auto *rightLayout = new QHBoxLayout(right);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+
+    user->setObjectName("userLabel");
+    auto *startBtn = new QPushButton(right);
+    startBtn->setIcon(loadIcon("icons/start.svg"));
+    connect(startBtn, &QPushButton::clicked, this, &MenuBarWidget::runCode);
+    startBtn->setObjectName("startBtn");
+
+    rightLayout->addWidget(user);
+    rightLayout->addWidget(startBtn);
+    right->setLayout(rightLayout);
+    setCornerWidget(right);
+
+    setStyleSheet(loadText("qss/menu.css"));
 }
 
 void MenuBarWidget::onSave() { emit saveFile(); }

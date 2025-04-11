@@ -2,6 +2,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QFontDatabase>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -9,19 +10,17 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSpinBox>
-#include <qfontdatabase.h>
 #include <qtermwidget.h>
 
 #include "../util/file.h"
 
-template<class Widget, class Variant>
-void bindConfig(Widget *widget, const QString &key, void (Widget::*setterSlot)(const Variant &),
-                void (Widget::*changedSignal)(const Variant &)) {
+template<class W, class V>
+void bindConfig(W *widget, const QString &key, void (W::*setterSlot)(const V &), void (W::*changedSignal)(const V &)) {
     QVariant storedValue = Configs::instance().get(key);
-    Variant value = storedValue.value<Variant>();
+    auto value = storedValue.value<V>();
     (widget->*setterSlot)(value);
     QObject::connect(widget, changedSignal, widget,
-                     [key](const Variant &newValue) { Configs::instance().set(key, newValue); });
+                     [key](const V &newValue) { Configs::instance().set(key, newValue); });
 }
 
 
@@ -66,24 +65,20 @@ signals:
 
 public:
     explicit AppearancePage(QWidget *parent = nullptr) : QWidget(parent) {
-        QVBoxLayout *layout = new QVBoxLayout(this);
+        auto *layout = new QVBoxLayout(this);
 
         auto themeGroup = new QGroupBox(tr("主题"), this);
         auto themeLayout = new QVBoxLayout(themeGroup);
-        auto themeCombo = new QComboBox(themeGroup);
-        themeCombo->addItems({tr("浅色"), tr("深色"), tr("系统默认")});
         auto terminalThemeCombo = new QComboBox(themeGroup);
         terminalThemeCombo->addItems(QTermWidget::availableColorSchemes());
-        bindConfig(terminalThemeCombo,"terminalTheme",&QComboBox::setCurrentText, &QComboBox::currentTextChanged);
+        bindConfig(terminalThemeCombo, "terminalTheme", &QComboBox::setCurrentText, &QComboBox::currentTextChanged);
 
-        themeLayout->addWidget(new QLabel(tr("选择主题:"), themeGroup));
-        themeLayout->addWidget(themeCombo);
         themeLayout->addWidget(new QLabel(tr("终端主题"), themeGroup));
         themeLayout->addWidget(terminalThemeCombo);
         themeGroup->setLayout(themeLayout);
 
-        QGroupBox *fontGroup = new QGroupBox(tr("字体"), this);
-        QVBoxLayout *fontLayout = new QVBoxLayout(fontGroup);
+        auto *fontGroup = new QGroupBox(tr("字体"), this);
+        auto *fontLayout = new QVBoxLayout(fontGroup);
 
         fontLayout->addWidget(new QLabel(tr("字体:"), fontGroup));
         fontCombo = new QComboBox(fontGroup);
@@ -94,6 +89,7 @@ public:
         fontLayout->addWidget(new QLabel(tr("大小:")));
         fontSizeSpin = new QSpinBox(fontGroup);
         fontSizeSpin->setRange(8, 24);
+        fontSizeSpin->setMaximumHeight(30);
         connect(fontSizeSpin, &QSpinBox::valueChanged, this, &AppearancePage::onFontSizeChanged);
         fontLayout->addWidget(fontSizeSpin);
         fontGroup->setLayout(fontLayout);
@@ -110,24 +106,16 @@ class AdvancedPage : public QWidget {
     Q_OBJECT
 
 public:
-    AdvancedPage(QWidget *parent = nullptr) : QWidget(parent) {
-        QVBoxLayout *layout = new QVBoxLayout(this);
+    explicit AdvancedPage(QWidget *parent = nullptr) : QWidget(parent) {
+        auto *layout = new QVBoxLayout(this);
 
-        QGroupBox *debugGroup = new QGroupBox(tr("调试选项"));
-        QVBoxLayout *debugLayout = new QVBoxLayout();
-        QCheckBox *enableLogCheck = new QCheckBox(tr("启用日志记录"));
-        QCheckBox *verboseLogCheck = new QCheckBox(tr("详细日志"));
-        debugLayout->addWidget(enableLogCheck);
-        debugLayout->addWidget(verboseLogCheck);
-        debugGroup->setLayout(debugLayout);
-
-        QGroupBox *resetGroup = new QGroupBox(tr("重置选项"));
-        QVBoxLayout *resetLayout = new QVBoxLayout();
-        QPushButton *resetSettingsBtn = new QPushButton(tr("恢复默认设置"));
+        auto *resetGroup = new QGroupBox(tr("重置选项"));
+        auto *resetLayout = new QVBoxLayout();
+        auto *resetSettingsBtn = new QPushButton(tr("恢复默认设置"));
+        connect(resetSettingsBtn, &QPushButton::clicked, &Configs::instance(), &Configs::reset);
         resetLayout->addWidget(resetSettingsBtn);
         resetGroup->setLayout(resetLayout);
 
-        layout->addWidget(debugGroup);
         layout->addWidget(resetGroup);
         layout->addStretch();
     }
@@ -137,24 +125,24 @@ class AboutPage : public QWidget {
     Q_OBJECT
 
 public:
-    AboutPage(QWidget *parent = nullptr) : QWidget(parent) {
-        QVBoxLayout *layout = new QVBoxLayout(this);
+    explicit AboutPage(QWidget *parent = nullptr) : QWidget(parent) {
+        auto *layout = new QVBoxLayout(this);
 
-        QLabel *titleLabel = new QLabel(tr("<h2>NeverJudge</h2>"), this);
-        QLabel *authorLabel = new QLabel(tr("作者: LeoDreamer"), this);
-        QLabel *githubLabel = new QLabel(this);
+        auto *titleLabel = new QLabel(tr("<h2>NeverJudge</h2>"), this);
+        auto *authorLabel = new QLabel(tr("作者: LeoDreamer"), this);
+        auto *githubLabel = new QLabel(this);
         githubLabel->setText(tr("项目地址: <a href='https://github.com/LeoDreamer2004/Never-Judge'>GitHub</a>"));
         githubLabel->setTextFormat(Qt::RichText);
         githubLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
         githubLabel->setOpenExternalLinks(true);
 
-        QFrame *separator = new QFrame(this);
+        auto separator = new QFrame(this);
         separator->setFrameShape(QFrame::HLine);
         separator->setFrameShadow(QFrame::Sunken);
 
-        QHBoxLayout *qtInfoLayout = new QHBoxLayout(this);
-        QLabel *qtInfoLabel = new QLabel(tr("此应用程序使用 Qt 构建。"), this);
-        QPushButton *qtInfoButton = new QPushButton(tr("关于 Qt"), this);
+        auto *qtInfoLayout = new QHBoxLayout(this);
+        auto *qtInfoLabel = new QLabel(tr("此应用程序使用 Qt 构建。"), this);
+        auto *qtInfoButton = new QPushButton(tr("关于 Qt"), this);
         qtInfoLabel->setTextFormat(Qt::RichText);
         qtInfoLayout->addWidget(qtInfoLabel);
         qtInfoLayout->addWidget(qtInfoButton);
@@ -173,8 +161,10 @@ public:
 SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle(tr("设置"));
     setMinimumSize(600, 400);
+    navList = new QListWidget(this);
+    stackedWidget = new QStackedWidget(this);
 
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
+    auto *mainLayout = new QHBoxLayout(this);
     createNavigationList();
     mainLayout->addWidget(navList, 1);
     createPages();
@@ -185,24 +175,22 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
 }
 
 void SettingsDialog::createNavigationList() {
-    navList = new QListWidget(this);
     navList->setMaximumWidth(150);
     navList->setSpacing(2);
 
-    QListWidgetItem *generalItem = new QListWidgetItem(tr("常规设置"), navList);
+    auto *general = new QListWidgetItem(tr("常规设置"), navList);
 
-    QListWidgetItem *appearanceItem = new QListWidgetItem(tr("外观"), navList);
-    appearanceItem->setIcon(loadIcon("icons/palette.svg"));
+    auto *appearance = new QListWidgetItem(tr("外观"), navList);
+    appearance->setIcon(loadIcon("icons/palette.svg"));
 
-    QListWidgetItem *advancedItem = new QListWidgetItem(tr("高级"), navList);
-    advancedItem->setIcon(loadIcon("icons/setting.svg"));
+    auto *advanced = new QListWidgetItem(tr("高级"), navList);
+    advanced->setIcon(loadIcon("icons/setting.svg"));
 
-    QListWidgetItem *aboutItem = new QListWidgetItem(tr("关于"), navList);
-    aboutItem->setIcon(loadIcon("icons/info.svg"));
+    auto *about = new QListWidgetItem(tr("关于"), navList);
+    about->setIcon(loadIcon("icons/info.svg"));
 }
 
 void SettingsDialog::createPages() {
-    stackedWidget = new QStackedWidget(this);
 
     stackedWidget->addWidget(new GeneralPage(this));
     stackedWidget->addWidget(new AppearancePage(this));

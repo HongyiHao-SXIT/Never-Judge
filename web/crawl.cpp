@@ -1,8 +1,6 @@
 #include "crawl.h"
 
-#include <QJsonObject>
 #include <QNetworkCookieJar>
-#include <QTextCodec>
 #include <QUrlQuery>
 
 #include "../util/file.h"

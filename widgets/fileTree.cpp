@@ -7,21 +7,28 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QUrl>
+#include <QVBoxLayout>
 
 #include "../ide/project.h"
+#include "../util/file.h"
 
 
-FileTreeWidget::FileTreeWidget(QWidget *parent) : QTreeView(parent) {
+FileTreeWidget::FileTreeWidget(QWidget *parent) : QWidget(parent) {
     model = new QFileSystemModel(this);
-    this->QTreeView::setModel(model);
+    headerLabel = new QLabel(this);
+    treeView = new QTreeView(this);
+    treeView->setModel(model);
     setup();
-    connect(this, &QTreeView::clicked, this, &FileTreeWidget::clickFile);
+    connect(treeView, &QTreeView::clicked, this, &FileTreeWidget::clickFile);
     connect(this, &FileTreeWidget::rawOperateFile, this, &FileTreeWidget::handleRawFileOperation);
 }
 
 void FileTreeWidget::setRoot(const QString &root) {
     model->setRootPath(root);
-    setRootIndex(model->index(root));
+    treeView->setRootIndex(model->index(root));
+
+    QString lastDirName = root.split("/").last();
+    headerLabel->setText(lastDirName);
 }
 
 void FileTreeWidget::addFileOperationToMenu(QMenu &menu, const QString &file, const QString &label,
@@ -37,16 +44,27 @@ void FileTreeWidget::addFileOperationToMenu(QMenu &menu, const QString &file, co
 }
 
 void FileTreeWidget::setup() {
-    // TODO: Finish the title
-    header()->hide();
+    treeView->header()->hide();
     // only keep filenames
     for (int i = 1; i < model->columnCount(); ++i) {
-        this->hideColumn(i);
+        treeView->hideColumn(i);
     }
+    headerLabel->setObjectName("headerLabel");
+
+    auto *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+
+    mainLayout->addWidget(headerLabel);
+    mainLayout->addWidget(treeView);
+
+    setLayout(mainLayout);
+
+    setStyleSheet(loadText("qss/fileTree.css"));
 }
 
 void FileTreeWidget::contextMenuEvent(QContextMenuEvent *event) {
-    QModelIndex index = indexAt(event->pos());
+    QModelIndex index = treeView->indexAt(event->pos());
     if (!index.isValid()) {
         return;
     }
@@ -82,14 +100,14 @@ QMap<Qt::Key, FileOperation> FileTreeWidget::opShortcuts = {
 void FileTreeWidget::keyPressEvent(QKeyEvent *event) {
     auto key = static_cast<Qt::Key>(event->key());
     if (opShortcuts.contains(key)) {
-        QModelIndex index = currentIndex();
+        QModelIndex index = treeView->currentIndex();
         if (!index.isValid()) {
             return;
         }
         QString filePath = model->filePath(index);
         emit rawOperateFile(filePath, opShortcuts.value(key));
     } else {
-        QTreeView::keyPressEvent(event);
+        QWidget::keyPressEvent(event);
     }
 }
 

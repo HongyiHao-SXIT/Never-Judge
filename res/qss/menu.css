@@ -1,0 +1,72 @@
+QMenuBar {
+    background-color: #252526;
+    color: #D4D4D4;
+    border-bottom: 1px solid #3F3F46;
+    padding: 2px;
+}
+
+QMenuBar::item {
+    background-color: transparent;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+QMenuBar::item:selected {
+    background-color: #37373D;
+}
+
+QMenuBar::item:pressed {
+    background-color: #3E3E42;
+}
+
+QMenu {
+    background-color: #252526;
+    border: 1px solid #3F3F46;
+    color: #D4D4D4;
+    padding: 2px;
+    border-radius: 2px;
+}
+
+QMenu::item {
+    padding: 5px 25px 5px 20px;
+    margin: 2px;
+}
+
+QMenu::item:selected {
+    background-color: #37373D;
+    border-radius: 2px;
+}
+
+QMenu::item:pressed {
+    background-color: #3E3E42;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #3F3F46;
+    margin: 5px 0;
+}
+
+QMenu::icon {
+    padding-left: 10px;
+}
+
+#startBtn {
+    background-color: transparent;
+    padding: 0px 10px;
+    border: none;
+}
+
+#startBtn:hover {
+    border: none;
+}
+
+#startBtn:checked {
+    border: none;
+}
+
+#userLabel {
+    color: #999999;
+    padding: 5px 10px;
+    font-size: 12px;
+}

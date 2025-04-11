@@ -6,8 +6,6 @@
 class IconButton : public QPushButton {
     Q_OBJECT
 
-    static QIcon renderIcon(const QString &iconPath, int iconSize);
-
 public:
     explicit IconButton(QWidget *parent);
     void setIconFromPath(const QString &iconPath, int iconSize);

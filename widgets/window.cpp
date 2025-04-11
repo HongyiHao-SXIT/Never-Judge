@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QSplitter>
 
+#include "../util/file.h"
 #include "setting.h"
 
 IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWindow(parent) {
@@ -28,8 +29,6 @@ IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWin
 }
 
 void IDEMainWindow::setup() {
-    QIcon::setThemeName("oxygen");
-
     this->setWindowTitle(tr("Never Judge"));
     this->setMinimumSize(1366, 768);
     this->setMenuBar(menuBar);
@@ -45,9 +44,9 @@ void IDEMainWindow::setup() {
     hSplitter->addWidget(codeTab);
     hSplitter->addWidget(ojPreview);
 
-    hSplitter->setStretchFactor(0, 1);
+    hSplitter->setStretchFactor(0, 3);
     hSplitter->setStretchFactor(1, 4);
-    hSplitter->setStretchFactor(2, 2);
+    hSplitter->setStretchFactor(2, 3);
 
     auto *vSplitter = new QSplitter(Qt::Vertical, this);
     vSplitter->addWidget(hSplitter);
@@ -59,10 +58,14 @@ void IDEMainWindow::setup() {
     auto *fullLayout = new QVBoxLayout(this);
     fullLayout->addLayout(mainLayout);
     fullLayout->addWidget(footer);
+    fullLayout->setContentsMargins(0,0,0,0);
+    fullLayout->setSpacing(0);
 
     auto *centralWidget = new QWidget(this);
     centralWidget->setLayout(fullLayout);
-    this->setCentralWidget(centralWidget);
+    setCentralWidget(centralWidget);
+
+    setStyleSheet(loadText("qss/window.css"));
 }
 
 void IDEMainWindow::connectSignals() {

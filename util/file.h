@@ -8,6 +8,7 @@
 
 QFile loadRes(const QString &path);
 QIcon loadIcon(const QString &path);
+QString loadText(const QString &path);
 
 class TempFiles {
 public:
@@ -38,6 +39,7 @@ class Configs : public QObject {
 public:
     static Configs &instance();
     static void clear();
+    static void reset();
     QJsonValue get(const QString &key) const;
     QJsonObject getAll() const;
     void set(const QString &key, const QVariant &value);

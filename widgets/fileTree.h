@@ -2,14 +2,17 @@
 #define FILETREE_H
 
 #include <QFileSystemModel>
+#include <QLabel>
 #include <QTreeView>
 
 enum FileOperation { OPEN, OPEN_LOCALLY, RENAME, DELETE };
 
-class FileTreeWidget : public QTreeView {
+class FileTreeWidget : public QWidget {
     Q_OBJECT
 
+    QTreeView *treeView;
     QFileSystemModel *model;
+    QLabel *headerLabel;
 
     void setup();
     /* Add file operation to the context menu */

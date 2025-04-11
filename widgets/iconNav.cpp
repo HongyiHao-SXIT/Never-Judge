@@ -23,12 +23,12 @@ void IconNavigateWidget::setup() {
                   "border-right: none;"
                   "}");
 
-    layout->setContentsMargins(0, 10, 0, 10);
+    layout->setContentsMargins(5, 10, 5, 10);
     layout->setSpacing(10);
     layout->setAlignment(Qt::AlignTop);
 
     setLayout(layout);
-    setFixedWidth(NAV_BTN_SIZE);
+    setFixedWidth(NAV_BTN_SIZE + 10);
 }
 
 QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString &tooltip) {

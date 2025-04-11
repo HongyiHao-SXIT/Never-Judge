@@ -8,11 +8,19 @@
         <file>icons/info.svg</file>
         <file>icons/setting.svg</file>
         <file>icons/palette.svg</file>
+        <file>icons/start.svg</file>
+        <file>qss/footer.css</file>
+        <file>qss/code.css</file>
+        <file>qss/window.css</file>
+        <file>qss/menu.css</file>
+        <file>qss/fileTree.css</file>
+        <file>qss/preview.css</file>
         <file>script/match.py</file>
         <file>script/crawl.py</file>
         <file>script/parser.py</file>
         <file>script/submit.py</file>
         <file>script/submit_response.py</file>
         <file>setting/settings.json</file>
+        <file>logo.txt</file>
     </qresource>
 </RCC>
