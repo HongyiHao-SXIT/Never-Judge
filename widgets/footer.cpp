@@ -13,6 +13,14 @@ ProgressBarTask::ProgressBarTask(QString text, int max) : text(std::move(text)),
     this->id = ++id;
 }
 
+void ProgressBarTask::wait(const QString &newText) const { FooterWidget::instance().waitTask(*this, newText); }
+
+void ProgressBarTask::update(int value, const QString &newText) const {
+    FooterWidget::instance().updateTask(*this, value, newText);
+}
+
+void ProgressBarTask::finish() const { FooterWidget::instance().finishTask(*this); }
+
 FooterWidget::FooterWidget(QWidget *parent) : QFrame(parent), curTaskId(TASK_FREE) {
     fileLabel = new QLabel(this);
     progressBar = new QProgressBar(this);
@@ -52,6 +60,8 @@ void FooterWidget::clear() const { fileLabel->setText(""); }
 void FooterWidget::setFileLabel(const QString &text) const { fileLabel->setText(text); }
 
 ProgressBarTask FooterWidget::newTask(const QString &text, int max) { return ProgressBarTask(text, max); }
+
+void FooterWidget::waitTask(const ProgressBarTask &task, const QString &newText) { updateTask(task, 0, newText); }
 
 void FooterWidget::updateTask(const ProgressBarTask &task, int value, const QString &newText) {
     if (curTaskId == TASK_FREE || curTaskId == task.id) {

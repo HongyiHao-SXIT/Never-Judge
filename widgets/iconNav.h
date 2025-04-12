@@ -1,9 +1,9 @@
 #ifndef ICON_NAV_H
 #define ICON_NAV_H
 
+#include <QFrame>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include <QFrame>
 
 class IconNavigateWidget : public QFrame {
     Q_OBJECT
@@ -14,7 +14,7 @@ protected:
     QVBoxLayout *layout;
     QList<QPushButton *> buttons;
 
-    QPushButton *newIcon(const QString &iconPath, const QString &tooltip);
+    QPushButton *newIcon(const QString &iconPath, const QString &tooltip, bool toggle = true);
 
 public:
     explicit IconNavigateWidget(QWidget *parent = nullptr);
@@ -44,12 +44,14 @@ class RightIconNavigateWidget : public IconNavigateWidget {
 
 private slots:
     void onTogglePreview(bool checked);
+    void onOpenSetting();
 
 public:
     explicit RightIconNavigateWidget(QWidget *parent = nullptr);
 
 signals:
     void togglePreview(bool show);
+    void openSetting();
 };
 
 #endif // ICON_NAV_H

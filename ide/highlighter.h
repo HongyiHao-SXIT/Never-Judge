@@ -8,6 +8,7 @@
 #include <QTextCharFormat>
 #include <tree_sitter/api.h>
 
+
 struct HighlightRule {
     QString pattern = nullptr;
     QTextCharFormat strFormat;
@@ -35,7 +36,6 @@ class Highlighter : public QSyntaxHighlighter {
 
     QList<Query> queries;
     QList<QueryResult> results;
-    static QList<HighlightRule> rules;
 
     int currentCursorPos = -1;
     TSQuery *bracketQuery = nullptr;
@@ -53,12 +53,13 @@ private slots:
     void readRules(const QJsonValue &jsonRules);
 
 public:
+    mutable bool textNotChanged = true;
+
     Highlighter(const TSLanguage *language, QString langName, QTextDocument *parent);
     ~Highlighter() override;
     static QPair<TSLanguage *, QString> toTSLanguage(Language language);
     void setCursorPosition(int pos);
 };
-
 class HighlighterFactory {
 public:
     static Highlighter *getHighlighter(Language language, QTextDocument *parent);

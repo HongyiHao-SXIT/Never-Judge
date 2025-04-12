@@ -15,6 +15,7 @@ QProgressBar {
     border-radius: 3px;
     text-align: center;
     color: #D4D4D4;
+    max-height: 20px;
     font-size: 11px;
     min-width: 150px;
     max-width: 250px;

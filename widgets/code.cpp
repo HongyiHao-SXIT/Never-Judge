@@ -106,7 +106,6 @@ void CodeEditWidget::resizeEvent(QResizeEvent *event) {
 }
 
 
-
 void CodeEditWidget::keyPressEvent(QKeyEvent *e) {
     QPlainTextEdit::keyPressEvent(e);
     updateCursorPosition();
@@ -217,11 +216,16 @@ void CodeEditWidget::readFile() {
         }
         for (const auto &c: line) {
             if (!c.isPrint() && !c.isSpace() && !c.isPunct()) {
-                setReadOnly(true);
-                lineNumberArea->setVisible(false);
-                setPlainText(tr("文件格式不支持"));
-                check.close();
-                return;
+                if (c.category() != QChar::Mark_NonSpacing && // Mn
+                    c.category() != QChar::Symbol_Other && // So
+                    c.category() != QChar::Other_Surrogate && // Cs
+                    c.category() != QChar::Other_Format) {
+                    setReadOnly(true);
+                    lineNumberArea->setVisible(false);
+                    setPlainText(tr("文件格式不支持"));
+                    check.close();
+                    return;
+                }
             }
         }
     }
@@ -270,6 +274,13 @@ bool CodeEditWidget::askForSave() {
 }
 
 void CodeEditWidget::onTextChanged() {
+    // This is a hack!
+    // If highlighter has not changed the text, we should not emit modify signal
+    if (highlighter->textNotChanged) {
+        highlighter->textNotChanged = false;
+        return;
+    }
+
     if (!modified) {
         modified = true;
         emit modify();

@@ -8,6 +8,7 @@ class MenuBarWidget : public QMenuBar {
     Q_OBJECT
 
     QLabel *user;
+    QWidget* right;
 
     using SlotFunc = void (MenuBarWidget::*)();
 

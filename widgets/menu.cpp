@@ -49,7 +49,7 @@ void MenuBarWidget::setup() {
     newAction(ojMenu, "提交", QKeySequence(), &MenuBarWidget::onSubmitOJ);
 
     // show username here
-    auto *right = new QWidget(this);
+    right = new QWidget(this);
     auto *rightLayout = new QHBoxLayout(right);
     rightLayout->setContentsMargins(0, 0, 0, 0);
 
@@ -93,5 +93,5 @@ void MenuBarWidget::onSubmitOJ() { emit submitOJ(); }
 
 void MenuBarWidget::onLogin(const QString &username) {
     user->setText(username);
-    setCornerWidget(user);
+    setCornerWidget(right);
 }

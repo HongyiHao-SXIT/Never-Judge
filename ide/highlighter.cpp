@@ -5,8 +5,6 @@
 
 #include "../util/file.h"
 
-QList<HighlightRule> Highlighter::rules{};
-
 // TODO: optimize the rule memory use
 Highlighter::Highlighter(const TSLanguage *language, QString langName, QTextDocument *parent) :
     QSyntaxHighlighter(parent), language(language), langName(std::move(langName)) {
@@ -18,7 +16,6 @@ Highlighter::Highlighter(const TSLanguage *language, QString langName, QTextDocu
     setupBracketQuery();
     connect(document(), &QTextDocument::contentsChange, this, &Highlighter::onContentsChanged);
 }
-
 
 QPair<TSLanguage *, QString> Highlighter::toTSLanguage(Language language) {
     QString name;
@@ -92,6 +89,7 @@ void Highlighter::setupBracketQuery() {
 void Highlighter::setCursorPosition(int pos) {
     if (currentCursorPos != pos) {
         currentCursorPos = pos;
+        textNotChanged = true;
         rehighlight();
     }
 }
@@ -114,7 +112,7 @@ void Highlighter::highlightBlock(const QString &text) {
             }
         }
     }
-    // highlightBracketPairs(text);
+    highlightBracketPairs(text);
 }
 
 QTextCharFormat Highlighter::matchFormat(QTextCharFormat format) {
@@ -205,6 +203,8 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
         return;
     }
 
+    QList<HighlightRule> rules;
+
     // read highlight rules from json
     for (const auto &array: jsonRules.toArray()) {
         auto obj = array.toObject();
@@ -272,16 +272,14 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
             continue;
         }
         auto cursor = ts_query_cursor_new();
-        queries.emplace_back(query, cursor, format);
+        queries.emplace_back(query, cursor, std::move(format));
     }
 }
 
 void Highlighter::parseDocument() {
-
     auto utf8Content = document()->toPlainText().toUtf8();
 
     // FIXME: use old tree here for better performance
-
     if (tree) {
         ts_tree_delete(tree);
     }

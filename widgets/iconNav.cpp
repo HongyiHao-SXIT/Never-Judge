@@ -31,10 +31,15 @@ void IconNavigateWidget::setup() {
     setFixedWidth(NAV_BTN_SIZE + 10);
 }
 
-QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString &tooltip) {
-    auto *button = new IconToggleButton(this);
+QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString &tooltip, bool toggle) {
+    IconButton *button;
+    if (toggle) {
+        button = new IconToggleButton(this);
+    } else {
+        button = new IconPushButton(this);
+    }
 
-    button->setIconFromResName(iconName, NAV_ICON_SIZE);
+    button->setIconFromResName(iconName);
 
     button->setFixedSize(NAV_BTN_SIZE, NAV_BTN_SIZE);
     button->setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE));
@@ -67,6 +72,10 @@ RightIconNavigateWidget::RightIconNavigateWidget(QWidget *parent) : IconNavigate
 void RightIconNavigateWidget::addIcons() {
     auto *previewBtn = newIcon("search", tr("显示预览"));
     connect(previewBtn, &QPushButton::toggled, this, &RightIconNavigateWidget::onTogglePreview);
+    auto *settingBtn = newIcon("gear", tr("设置"), false);
+    connect(settingBtn, &QPushButton::clicked, this, &RightIconNavigateWidget::onOpenSetting);
 }
 
 void RightIconNavigateWidget::onTogglePreview(const bool checked) { emit togglePreview(checked); }
+
+void RightIconNavigateWidget::onOpenSetting() { emit openSetting(); }

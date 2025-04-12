@@ -21,8 +21,8 @@ class PreviewTextWidget : public QTextEdit {
     void setup() { setReadOnly(true); }
 
 public:
-    explicit PreviewTextWidget(const QUrl &url, const QString &title, QWidget *parent) :
-        QTextEdit(parent), url(url), title(title) {
+    explicit PreviewTextWidget(QUrl url, QString title, QWidget *parent) :
+        QTextEdit(parent), title(std::move(title)), url(std::move(url)) {
         setup();
     }
     QUrl &getUrl() { return url; }
@@ -62,12 +62,12 @@ void OpenJudgePreviewWidget::setup() {
     auto *mainLayout = new QVBoxLayout(this);
     titleLabel->setAlignment(Qt::AlignCenter);
 
-    lastBtn->setIconFromResName("left", 20);
+    lastBtn->setIconFromResName("left");
     lastBtn->setDisabled(true);
     lastBtn->setFixedSize(25, 25);
     connect(lastBtn, &QPushButton::clicked, this, &OpenJudgePreviewWidget::decrementIndex);
 
-    nextBtn->setIconFromResName("right", 20);
+    nextBtn->setIconFromResName("right");
     nextBtn->setDisabled(true);
     nextBtn->setFixedSize(25, 25);
     connect(nextBtn, &QPushButton::clicked, this, &OpenJudgePreviewWidget::incrementIndex);
@@ -203,7 +203,11 @@ QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
         co_await loginOJ();
         co_return;
     }
+    auto task = FooterWidget::newTask(tr("正在登入"));
+    task.wait();
     auto res = co_await Crawler::instance().login(email, password);
+    task.finish();
+
     if (!res.has_value()) {
         warning(res.error());
         co_await loginOJ();
@@ -252,13 +256,18 @@ QCoro::Task<> OpenJudgePreviewWidget::submit(QString code) {
         co_return;
     }
     QUrl submitUrl = curPreview()->getUrl().url() + "/submit";
+    auto task = FooterWidget::newTask(tr("正在提交题目"));
+    task.wait();
     auto submitRes = co_await Crawler::instance().get(submitUrl);
     if (!submitRes.has_value()) {
         // The res should be ok here, unless the website changed
         warning(submitRes.error());
+        task.finish();
         co_return;
     }
+    task.wait(tr("正在检查提交表单项"));
     auto formRes = co_await OJParser::parseProblemSubmitForm(submitRes.value());
+    task.finish();
     if (!formRes.has_value()) {
         warning(formRes.error());
         co_return;
@@ -269,27 +278,37 @@ QCoro::Task<> OpenJudgePreviewWidget::submit(QString code) {
         co_return;
     }
 
+    task = FooterWidget::newTask(tr("正在提交表单"));
+    task.wait();
     OJSubmitForm newForm = {form.contestId, form.problemNumber, {}, code, dialog.getLanguage(), curPreview()->getUrl()};
     auto res = co_await Crawler::instance().submit(newForm);
+    task.finish();
+
     if (!res.has_value()) {
         warning(res.error());
+        co_return;
     }
     emit submitFinished(std::move(res.value()));
     co_return;
 }
 
 QCoro::Task<> OpenJudgePreviewWidget::waitForResponse(QUrl responseUrl) {
+    auto task = FooterWidget::newTask("正在等待提交结果");
+    task.wait();
     auto res = co_await Crawler::instance().get(responseUrl);
     if (!res.has_value()) {
         warning(tr("等待提交结果时出现错误: %1").arg(res.error()));
+        task.finish();
         co_return;
     }
     auto response = co_await OJParser::parseProblemSubmitResponse(res.value());
     if (!response.has_value()) {
         warning(response.error());
+        task.finish();
         co_return;
     }
     emit submitResponseReceived(std::move(response.value()), std::move(responseUrl));
+    task.finish();
     co_return;
 }
 
@@ -399,7 +418,7 @@ QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
     for (int i = 0; i < problemUrls.length(); i++) {
         // These urls are relative url in the website
         auto url = match.resolved(problemUrls[i]);
-        FooterWidget::instance().updateTask(task, i);
+        task.update(i);
 
         auto problem = co_await downloadAndParse(url);
         if (problem.has_value()) {
@@ -411,7 +430,7 @@ QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
             warning(tr("处理试题 %1 时出错:\n").arg(url.toString()) + problem.error());
         }
     }
-    FooterWidget::instance().finishTask(task);
+    task.finish();
 
     emit previewPagesReset();
     co_return;

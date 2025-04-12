@@ -11,7 +11,7 @@ class SettingsDialog : public QDialog {
     QListWidget *navList;
     QStackedWidget *stackedWidget;
 
-    void createNavigationList();
+    void createNavigationList() const;
     void createPages();
 
 public:

@@ -49,8 +49,8 @@ QCoro::Task<std::expected<OJSubmitForm, QString>> OJParser::parseProblemSubmitFo
     }
 
     auto lines = output.stdOut.split("\n", Qt::SkipEmptyParts);
-    QString contestId = lines[0];
-    QString problemNumber = lines[1];
+    const QString& contestId = lines[0];
+    const QString& problemNumber = lines[1];
     QList<OJLanguage> languages;
     for (int i = 2; i < lines.size(); ++i) {
         QStringList lang = lines[i].split(" ");

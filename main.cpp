@@ -1,7 +1,10 @@
 #include "widgets/window.h"
 
 #include <QApplication>
+
+#ifndef NDEBUG
 #include "util/file.h"
+#endif
 
 int main(int argc, char *argv[]) {
 #ifndef NDEBUG

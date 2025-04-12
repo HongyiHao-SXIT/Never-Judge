@@ -58,7 +58,7 @@ void IDEMainWindow::setup() {
     auto *fullLayout = new QVBoxLayout(this);
     fullLayout->addLayout(mainLayout);
     fullLayout->addWidget(footer);
-    fullLayout->setContentsMargins(0,0,0,0);
+    fullLayout->setContentsMargins(0, 0, 0, 0);
     fullLayout->setSpacing(0);
 
     auto *centralWidget = new QWidget(this);
@@ -73,6 +73,7 @@ void IDEMainWindow::connectSignals() {
     connect(leftNav, &LeftIconNavigateWidget::toggleFileTree, fileTree, &FileTreeWidget::setVisible);
     connect(leftNav, &LeftIconNavigateWidget::toggleTerminal, terminal, &TerminalWidget::setVisible);
     connect(rightNav, &RightIconNavigateWidget::togglePreview, ojPreview, &OpenJudgePreviewWidget::setVisible);
+    connect(rightNav, &RightIconNavigateWidget::openSetting, this, &IDEMainWindow::openSettings);
 
     // File system
     connect(menuBar, &MenuBarWidget::newFile, fileTree,

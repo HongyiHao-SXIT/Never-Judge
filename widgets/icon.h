@@ -8,9 +8,9 @@ class IconButton : public QPushButton {
 
 public:
     explicit IconButton(QWidget *parent);
-    void setIconFromPath(const QString &iconPath, int iconSize);
+    void setIconFromPath(const QString &iconPath);
     /* default to find the res in .qrc */
-    void setIconFromResName(const QString &iconName, int iconSize);
+    void setIconFromResName(const QString &iconName);
 };
 
 class IconPushButton : public IconButton {

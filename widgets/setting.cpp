@@ -23,17 +23,6 @@ void bindConfig(W *widget, const QString &key, void (W::*setterSlot)(const V &),
                      [key](const V &newValue) { Configs::instance().set(key, newValue); });
 }
 
-
-class GeneralPage : public QWidget {
-    Q_OBJECT
-
-public:
-    explicit GeneralPage(QWidget *parent = nullptr) : QWidget(parent) {
-        auto layout = new QVBoxLayout(this);
-        setLayout(layout);
-    }
-};
-
 class AppearancePage : public QWidget {
 
 #define FONT_KEY "codeFont"
@@ -67,9 +56,9 @@ public:
     explicit AppearancePage(QWidget *parent = nullptr) : QWidget(parent) {
         auto *layout = new QVBoxLayout(this);
 
-        auto themeGroup = new QGroupBox(tr("主题"), this);
-        auto themeLayout = new QVBoxLayout(themeGroup);
-        auto terminalThemeCombo = new QComboBox(themeGroup);
+        auto *themeGroup = new QGroupBox(tr("主题"), this);
+        auto *themeLayout = new QVBoxLayout(themeGroup);
+        auto *terminalThemeCombo = new QComboBox(themeGroup);
         terminalThemeCombo->addItems(QTermWidget::availableColorSchemes());
         bindConfig(terminalThemeCombo, "terminalTheme", &QComboBox::setCurrentText, &QComboBox::currentTextChanged);
 
@@ -174,11 +163,9 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     navList->setCurrentRow(0);
 }
 
-void SettingsDialog::createNavigationList() {
+void SettingsDialog::createNavigationList() const {
     navList->setMaximumWidth(150);
     navList->setSpacing(2);
-
-    auto *general = new QListWidgetItem(tr("常规设置"), navList);
 
     auto *appearance = new QListWidgetItem(tr("外观"), navList);
     appearance->setIcon(loadIcon("icons/palette.svg"));
@@ -192,7 +179,6 @@ void SettingsDialog::createNavigationList() {
 
 void SettingsDialog::createPages() {
 
-    stackedWidget->addWidget(new GeneralPage(this));
     stackedWidget->addWidget(new AppearancePage(this));
     stackedWidget->addWidget(new AdvancedPage(this));
     stackedWidget->addWidget(new AboutPage(this));
