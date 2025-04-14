@@ -1,13 +1,12 @@
 #ifndef HIGHLIGHTER_H
 #define HIGHLIGHTER_H
 
-#include "project.h"
-
 #include <QJsonObject>
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
 #include <tree_sitter/api.h>
 
+#include "language.h"
 
 struct HighlightRule {
     QString pattern = nullptr;

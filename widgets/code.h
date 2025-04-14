@@ -22,7 +22,7 @@ class CodeEditWidget : public QPlainTextEdit {
 
     Q_OBJECT
 
-    FileInfo file;
+    LangFileInfo file;
     Highlighter *highlighter;
     bool modified;
     QWidget *lineNumberArea;
@@ -59,7 +59,7 @@ protected:
 public:
     CodeEditWidget(const QString &filename, QWidget *parent);
 
-    const FileInfo &getFile() const;
+    const LangFileInfo &getFile() const;
 
     QString getTabText() const;
     /* Read the file content and display it */
@@ -98,7 +98,7 @@ public:
     explicit CodeTabWidget(QWidget *parent);
 
     void clearAll();
-    FileInfo currentFile() const;
+    LangFileInfo currentFile() const;
     CodeEditWidget *curEdit() const;
     CodeEditWidget *editAt(int index) const;
     void save();

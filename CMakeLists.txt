@@ -23,6 +23,7 @@ set(PROJECT_SOURCES
         web/crawl.cpp
         web/parse.cpp
         res/resource.qrc
+        ide/language.cpp
         ide/project.cpp
         ide/cmd.cpp
         ide/ide.cpp

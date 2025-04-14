@@ -35,7 +35,6 @@ QPair<TSLanguage *, QString> Highlighter::toTSLanguage(Language language) {
 
     QLibrary tsLib("tree-sitter-" + name);
     if (!tsLib.load()) {
-        qWarning() << "Failed to load tree-sitter library:" << tsLib.errorString();
         return {nullptr, ""};
     }
 

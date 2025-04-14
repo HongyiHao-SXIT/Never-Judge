@@ -5,6 +5,12 @@
     "size": 15
   },
   "terminalTheme": "DarkPastels",
+  "runCommand": {
+    "c": "cd $dir && gcc $filename -o $filenameNoExt && ./$filenameNoExt && rm $filenameNoExt",
+    "cpp": "cd $dir && g++ $filename -o $filenameNoExt && ./$filenameNoExt && rm $filenameNoExt",
+    "cmakelists": "cd $dir && cmake -B build && cmake --build build",
+    "python": "cd $dir && python $filename"
+  },
   "highlightRules": [
     {
       "pattern": "(identifier) @identifier",

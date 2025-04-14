@@ -1,3 +1,4 @@
+import re
 import sys
 import os
 
@@ -37,6 +38,9 @@ pre { background-color: #222222;}
 </style>
 """
 
+content = str(content)
+# delete the style
+content = re.sub(r'style="[^"]*"', '', content)
 html = CSS + str(content)
 
 print(title)

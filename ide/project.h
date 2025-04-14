@@ -13,20 +13,4 @@ public:
     QString getRoot() const;
 };
 
-enum class Language { C, CPP, PYTHON, UNKNOWN };
-
-class FileInfo : public QFileInfo {
-public:
-    FileInfo();
-
-    static FileInfo empty();
-
-    FileInfo(const QString& fileName);
-
-    Language getLanguage() const;
-
-    bool isValid() const;
-};
-
-
 #endif // PROJECT_H

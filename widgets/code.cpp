@@ -69,9 +69,9 @@ const int LineNumberArea::R_MARGIN = 5;
 
 CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) : QPlainTextEdit(parent) {
     lineNumberArea = new LineNumberArea(this);
-    file = FileInfo(filename);
+    file = LangFileInfo(filename);
     modified = false;
-    highlighter = HighlighterFactory::getHighlighter(file.getLanguage(), this->document());
+    highlighter = HighlighterFactory::getHighlighter(file.language(), this->document());
 
     readFile();
     setup();
@@ -133,7 +133,7 @@ void CodeEditWidget::updateLineNumberArea(const QRect &rect, int dy) {
     }
 }
 
-const FileInfo &CodeEditWidget::getFile() const { return file; }
+const LangFileInfo &CodeEditWidget::getFile() const { return file; }
 
 QString CodeEditWidget::getTabText() const { return file.fileName(); };
 
@@ -382,11 +382,11 @@ void CodeTabWidget::removeCodeEdit(int index) {
 }
 
 
-FileInfo CodeTabWidget::currentFile() const {
+LangFileInfo CodeTabWidget::currentFile() const {
     if (auto *edit = curEdit()) {
         return edit->getFile();
     }
-    return FileInfo::empty();
+    return LangFileInfo::empty();
 }
 
 void CodeTabWidget::save() {

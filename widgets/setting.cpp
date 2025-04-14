@@ -12,6 +12,7 @@
 #include <QSpinBox>
 #include <qtermwidget.h>
 
+#include "../ide/language.h"
 #include "../util/file.h"
 
 template<class W, class V>
@@ -34,7 +35,7 @@ class AppearancePage : public QWidget {
 
 private slots:
     void setFont(const QJsonValue &value) {
-        QJsonObject obj = value.toObject();
+        auto obj = value.toObject();
         fontCombo->setCurrentText(obj.value("family").toString());
         fontSizeSpin->setValue(obj.value("size").toInt());
     };
@@ -91,21 +92,63 @@ public:
     }
 };
 
-class AdvancedPage : public QWidget {
+class RunningPage : public QWidget {
     Q_OBJECT
 
+    QLineEdit *cRunCmdEdit;
+    QLineEdit *cppRunCmdEdit;
+    QLineEdit *pythonRunCmdEdit;
+    QLineEdit *cmakelistsRunCmdEdit;
+
+#define RUN_CMD_KEY "runCommand"
+
+private slots:
+    void setRunCmd(const QJsonValue &value) {
+        auto obj = value.toObject();
+        cRunCmdEdit->setText(obj.value(langName(Language::C)).toString());
+        cppRunCmdEdit->setText(obj.value(langName(Language::CPP)).toString());
+        pythonRunCmdEdit->setText(obj.value(langName(Language::PYTHON)).toString());
+        cmakelistsRunCmdEdit->setText(obj.value(langName(Language::C_MAKE_LISTS)).toString());
+    }
+
+    void onCmdChanged(const QString &config, Language language) {
+        QJsonObject obj = Configs::instance().get(RUN_CMD_KEY).toObject();
+        obj[langName(language)] = config;
+        emit runCmdChanged(obj);
+    }
+
+signals:
+    void runCmdChanged(const QJsonValue &value);
+
 public:
-    explicit AdvancedPage(QWidget *parent = nullptr) : QWidget(parent) {
+    explicit RunningPage(QWidget *parent = nullptr) : QWidget(parent) {
         auto *layout = new QVBoxLayout(this);
 
-        auto *resetGroup = new QGroupBox(tr("重置选项"));
-        auto *resetLayout = new QVBoxLayout();
-        auto *resetSettingsBtn = new QPushButton(tr("恢复默认设置"));
-        connect(resetSettingsBtn, &QPushButton::clicked, &Configs::instance(), &Configs::reset);
-        resetLayout->addWidget(resetSettingsBtn);
-        resetGroup->setLayout(resetLayout);
+        auto *cmdGroup = new QGroupBox(tr("运行命令"), this);
+        auto *cmdLayout = new QVBoxLayout(cmdGroup);
+        cmdLayout->addWidget(new QLabel(tr("C 运行配置"), cmdGroup));
+        cRunCmdEdit = new QLineEdit(cmdGroup);
+        connect(cRunCmdEdit, &QLineEdit::textChanged, this, [this](const QString &v) { onCmdChanged(v, Language::C); });
+        cmdLayout->addWidget(cRunCmdEdit);
+        cmdLayout->addWidget(new QLabel(tr("C++ 运行配置"), cmdGroup));
+        cppRunCmdEdit = new QLineEdit(cmdGroup);
+        connect(cppRunCmdEdit, &QLineEdit::textChanged, this,
+                [this](const QString &v) { onCmdChanged(v, Language::CPP); });
+        cmdLayout->addWidget(cppRunCmdEdit);
+        cmdLayout->addWidget(new QLabel(tr("Python 运行配置"), cmdGroup));
+        pythonRunCmdEdit = new QLineEdit(cmdGroup);
+        connect(pythonRunCmdEdit, &QLineEdit::textChanged, this,
+                [this](const QString &v) { onCmdChanged(v, Language::PYTHON); });
+        cmdLayout->addWidget(pythonRunCmdEdit);
+        cmdLayout->addWidget(new QLabel(tr("CMakeLists 运行配置"), cmdGroup));
+        cmakelistsRunCmdEdit = new QLineEdit(cmdGroup);
+        connect(cmakelistsRunCmdEdit, &QLineEdit::textChanged, this,
+                [this](const QString &v) { onCmdChanged(v, Language::C_MAKE_LISTS); });
+        cmdLayout->addWidget(cmakelistsRunCmdEdit);
+        cmdGroup->setLayout(cmdLayout);
+        bindConfig(this, RUN_CMD_KEY, &RunningPage::setRunCmd, &RunningPage::runCmdChanged);
 
-        layout->addWidget(resetGroup);
+        layout->addWidget(cmdGroup);
         layout->addStretch();
     }
 };
@@ -129,6 +172,13 @@ public:
         separator->setFrameShape(QFrame::HLine);
         separator->setFrameShadow(QFrame::Sunken);
 
+        auto *resetGroup = new QGroupBox(tr("重置选项"));
+        auto *resetLayout = new QVBoxLayout();
+        auto *resetSettingsBtn = new QPushButton(tr("恢复默认设置"));
+        connect(resetSettingsBtn, &QPushButton::clicked, &Configs::instance(), &Configs::reset);
+        resetLayout->addWidget(resetSettingsBtn);
+        resetGroup->setLayout(resetLayout);
+
         auto *qtInfoLayout = new QHBoxLayout(this);
         auto *qtInfoLabel = new QLabel(tr("此应用程序使用 Qt 构建。"), this);
         auto *qtInfoButton = new QPushButton(tr("关于 Qt"), this);
@@ -140,6 +190,7 @@ public:
         layout->addWidget(authorLabel);
         layout->addWidget(githubLabel);
         layout->addWidget(separator);
+        layout->addWidget(resetGroup);
         layout->addLayout(qtInfoLayout);
         layout->addStretch();
 
@@ -170,8 +221,8 @@ void SettingsDialog::createNavigationList() const {
     auto *appearance = new QListWidgetItem(tr("外观"), navList);
     appearance->setIcon(loadIcon("icons/palette.svg"));
 
-    auto *advanced = new QListWidgetItem(tr("高级"), navList);
-    advanced->setIcon(loadIcon("icons/setting.svg"));
+    auto *running = new QListWidgetItem(tr("运行"), navList);
+    running->setIcon(loadIcon("icons/setting.svg"));
 
     auto *about = new QListWidgetItem(tr("关于"), navList);
     about->setIcon(loadIcon("icons/info.svg"));
@@ -180,7 +231,7 @@ void SettingsDialog::createNavigationList() const {
 void SettingsDialog::createPages() {
 
     stackedWidget->addWidget(new AppearancePage(this));
-    stackedWidget->addWidget(new AdvancedPage(this));
+    stackedWidget->addWidget(new RunningPage(this));
     stackedWidget->addWidget(new AboutPage(this));
 }
 

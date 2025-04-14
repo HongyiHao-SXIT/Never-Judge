@@ -3,7 +3,46 @@
 #include <QList>
 #include <utility>
 
-Command::Command() = default;
+#include "../util/file.h"
+
+class RunCommandManager : public QObject {
+    Q_OBJECT
+
+    QMap<Language, QString> cmdRules{};
+    RunCommandManager() {
+        Configs::bindHotUpdateOn(this, "runCommand", &RunCommandManager::onCmdChanged);
+        Configs::instance().manuallyUpdate("runCommand");
+    }
+
+private slots:
+    void onCmdChanged(const QJsonValue &cmds) {
+        auto obj = cmds.toObject();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            Language lang = stringToLang(it.key());
+            if (lang == Language::UNKNOWN) {
+                continue;
+            }
+            cmdRules[lang] = it.value().toString();
+        }
+    }
+
+public:
+    static RunCommandManager &instance() {
+        static RunCommandManager instance;
+        return instance;
+    }
+    QString getCommand(const LangFileInfo &file) {
+        Language lang = file.language();
+        QString rule = cmdRules[lang];
+
+        QString name = file.fileName();
+        QString nameNoExt = name.split(".").first();
+        QString dir = file.absolutePath();
+        // replace $dir, $filename, $filenameNoExt
+        rule.replace("$dir", "\"" + dir + "\"").replace("$filenameNoExt", nameNoExt).replace("$filename", name);
+        return rule;
+    }
+};
 
 Command::Command(QString cmd) : cmd(std::move(cmd)) {}
 
@@ -15,44 +54,6 @@ Command Command::clearScreen() { return {"clear"}; }
 
 Command Command::changeDirectory(const QString &dir) { return {"cd '" + dir + "'"}; }
 
-Command Command::runFile(const FileInfo &file) {
-    Command cd = changeDirectory(file.absolutePath());
-    QString name = file.fileName();
-    QString target;
+Command Command::runFile(const LangFileInfo &file) { return RunCommandManager::instance().getCommand(file); };
 
-    Language language = file.getLanguage();
-
-    Command compile;
-    Command run;
-
-    switch (language) {
-        case Language::PYTHON:
-            run = {"python " + name};
-            break;
-        case Language::C:
-            target = name.split(".").first();
-#ifdef __linux__
-            compile = Command("gcc " + name + " -o " + target);
-#elif defined(__APPLE__)
-            compile = Command("clang " + name + " -o " + target);
-#endif
-            run = {"./" + target};
-            run = compile.merge(run);
-            break;
-        case Language::CPP:
-            target = name.split(".").first();
-#ifdef __linux__
-            compile = Command("g++ " + name + " -o " + target);
-#elif defined(__APPLE__)
-            compile = Command("clang++ " + name + " -o " + target);
-#endif
-            run = {"./" + target};
-            run = compile.merge(run);
-            break;
-        default:
-            break;
-    }
-
-    return cd.merge(run);
-};
-
+#include "cmd.moc"

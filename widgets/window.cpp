@@ -119,13 +119,13 @@ void IDEMainWindow::runCurrentCode() const {
     // awake the terminal
     terminal->setVisible(true);
 
-    FileInfo file = codeTab->currentFile();
+    LangFileInfo file = codeTab->currentFile();
 
     if (!file.isValid()) {
         QMessageBox::warning(menuBar, tr("错误"), tr("不存在的文件或非法文件"));
         return;
     }
-    if (file.getLanguage() == Language::UNKNOWN) {
+    if (file.language() == Language::UNKNOWN) {
         QMessageBox::warning(menuBar, tr("错误"), tr("不支持运行的文件类型"));
         return;
     }

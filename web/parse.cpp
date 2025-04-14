@@ -1,5 +1,4 @@
 #include "parse.h"
-#include <QFile>
 
 #include "../util/file.h"
 #include "../util/script.h"
@@ -49,16 +48,15 @@ QCoro::Task<std::expected<OJSubmitForm, QString>> OJParser::parseProblemSubmitFo
     }
 
     auto lines = output.stdOut.split("\n", Qt::SkipEmptyParts);
-    const QString& contestId = lines[0];
-    const QString& problemNumber = lines[1];
+    const QString &contestId = lines[0];
+    const QString &problemNumber = lines[1];
     QList<OJLanguage> languages;
-    for (int i = 2; i < lines.size(); ++i) {
-        QStringList lang = lines[i].split(" ");
-        if (lang.size() == 2) {
-            languages.emplace_back(lang[0], lang[1]);
-        }
+    for (int i = 2; i < lines.size(); i++) {
+        auto &line = lines[i];
+        auto idx = line.indexOf(" ");
+        languages.emplace_back(line.mid(0, idx), line.mid(idx + 1));
     }
-
+    qDebug() << languages[0].name << languages[0].formValue;
     co_return OJSubmitForm(contestId, problemNumber, languages);
 }
 

@@ -62,13 +62,14 @@ void FileTreeWidget::setup() {
 
     setStyleSheet(loadText("qss/fileTree.css"));
 }
-
 void FileTreeWidget::contextMenuEvent(QContextMenuEvent *event) {
-    QModelIndex index = treeView->indexAt(event->pos());
+    QPoint glbPos = event->pos();
+    // use local viewport position
+    QPoint pos = treeView->viewport()->mapFromGlobal(glbPos);
+    QModelIndex index = treeView->indexAt(pos);
     if (!index.isValid()) {
         return;
     }
-
     QString filePath = model->filePath(index);
     QMenu menu(this);
 
@@ -87,9 +88,8 @@ void FileTreeWidget::contextMenuEvent(QContextMenuEvent *event) {
         connect(newFolderAction, &QAction::triggered, this, [this, filePath] { createNewFolder(filePath); });
     }
 
-    menu.exec(event->globalPos());
+    menu.exec(glbPos);
 }
-
 QMap<Qt::Key, FileOperation> FileTreeWidget::opShortcuts = {
         {Qt::Key_Enter, OPEN},
         {Qt::Key_F1, OPEN_LOCALLY},
@@ -161,7 +161,7 @@ void FileTreeWidget::createNewFolder(const QString &dir) {
 }
 
 void FileTreeWidget::handleRawFileOperation(const QString &filename, const FileOperation operation) {
-    FileInfo file(filename);
+    QFileInfo file(filename);
     bool ok = true;
 
     if (!file.exists()) {
