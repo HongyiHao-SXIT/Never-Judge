@@ -30,7 +30,7 @@ class IDEMainWindow : public QMainWindow {
     void connectSignals();
 
 public:
-    IDEMainWindow(int argc, char *argv[], QWidget *parent = nullptr);
+    explicit IDEMainWindow(QWidget *parent = nullptr);
 
 public slots:
     void openFolder(const QString &folder) const;

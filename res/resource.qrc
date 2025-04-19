@@ -10,8 +10,15 @@
         <file>icons/setting.svg</file>
         <file>icons/palette.svg</file>
         <file>icons/start.svg</file>
+        <file>icons/code/text.svg</file>
+        <file>icons/code/function.svg</file>
+        <file>icons/code/keyword.svg</file>
+        <file>icons/code/variable.svg</file>
+        <file>icons/code/class.svg</file>
+        <file>icons/code/module.svg</file>
         <file>qss/footer.css</file>
         <file>qss/code.css</file>
+        <file>qss/completion.css</file>
         <file>qss/window.css</file>
         <file>qss/menu.css</file>
         <file>qss/fileTree.css</file>

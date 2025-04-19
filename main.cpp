@@ -14,7 +14,12 @@ int main(int argc, char *argv[]) {
 #endif
 
     QApplication app(argc, argv);
-    auto *window = new IDEMainWindow(argc, argv);
+    auto *window = new IDEMainWindow();
+
+    // open the running folder
+    QString project = QString::fromStdString(std::filesystem::current_path());
+    window->openFolder(project);
+
     window->show();
     return QApplication::exec();
 }

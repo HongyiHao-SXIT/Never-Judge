@@ -28,6 +28,7 @@ set(PROJECT_SOURCES
         ide/cmd.cpp
         ide/ide.cpp
         ide/highlighter.cpp
+        ide/lsp.cpp
         widgets/setting.cpp
         widgets/icon.cpp
         widgets/footer.cpp

@@ -1,11 +1,56 @@
 #ifndef CODE_EDIT_H
 #define CODE_EDIT_H
 
+#include <QListWidget>
 #include <QPlainTextEdit>
+#include <qcorotask.h>
 
 #include "../ide/highlighter.h"
+#include "../ide/lsp.h"
 #include "../ide/project.h"
 #include "fileTree.h"
+
+class CodeEditWidget;
+
+class CompletionList : public QListWidget {
+    CodeEditWidget *codeEdit;
+    QList<CompletionItem> completions;
+
+    Q_OBJECT
+
+    void onItemClicked(const QListWidgetItem *item);
+    void updateHeight();
+    void addCompletionItem(const CompletionItem &item);
+
+protected:
+    void keyPressEvent(QKeyEvent *e) override;
+
+private slots:
+
+signals:
+    void completionSelected(const QString &completion);
+
+public:
+    explicit CompletionList(CodeEditWidget *codeEdit);
+    void readCompletions(const CompletionResponse &response);
+    void update(const QString &curWord);
+    void display();
+};
+
+class LineNumberArea : public QWidget {
+    CodeEditWidget *codeEdit;
+
+public:
+    static const int L_MARGIN;
+    static const int R_MARGIN;
+
+    explicit LineNumberArea(CodeEditWidget *codeEdit);
+    int getWidth() const;
+    QSize sizeHint() const override;
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+};
 
 class WelcomeWidget : public QWidget {
     Q_OBJECT
@@ -15,24 +60,24 @@ public:
     explicit WelcomeWidget(QWidget *parent);
 };
 
-class LineNumberArea;
-
 class CodeEditWidget : public QPlainTextEdit {
-    friend class LineNumberArea;
-
     Q_OBJECT
+
+    friend class LineNumberArea;
+    friend class CompletionList;
 
     LangFileInfo file;
     Highlighter *highlighter;
+    LanguageServer *server;
+    CompletionList *cl;
+    LineNumberArea *lna;
+
     bool modified;
-    QWidget *lineNumberArea;
+    bool requireCompletion;
 
     void setup();
-    /** Highlight the code between the given lines */
-    void highlightCode(int line1, int col1, int line2, int col2, QColor color);
-    // friend functions for line number area
-    int LNAWidth() const;
-    void LNAEvent(const QPaintEvent *event) const;
+    /** Run the language server */
+    QCoro::Task<> runServer();
 
 private slots:
     /** Font setter for configs */
@@ -44,12 +89,17 @@ private slots:
     /** Highlight the line where the cursor is */
     void highlightLine();
     /** What to do when the text is modified */
-    void onTextChanged();
-    /** update the cursor position (and tell it to highlighter) */
+    QCoro::Task<> onTextChanged();
+    /** Update the cursor position (and tell it to highlighter) */
     void updateCursorPosition() const;
-
-
+    /** Ask the language server for completion */
+    QCoro::Task<> askForCompletion() const;
+    /** Update the completion list */
+    void updateCompletionList();
+    /** Insert the given completion */
+    void insertCompletion(const QString &completion);
 signals:
+    void setupFinished();
     void modify();
 
 protected:
@@ -57,46 +107,47 @@ protected:
     void keyPressEvent(QKeyEvent *e) override;
 
 public:
-    CodeEditWidget(const QString &filename, QWidget *parent);
+    explicit CodeEditWidget(const QString &filename, QWidget *parent = nullptr);
 
     const LangFileInfo &getFile() const;
 
     QString getTabText() const;
-    /* Read the file content and display it */
+    /** Read the file content and display it */
     void readFile();
-    /* Save the file content to the file */
+    /** Save the file content to the file */
     void saveFile();
-    /* Check if the content is modified, if so, ask for save */
+    /** Check if the content is modified, if so, ask for save */
     bool askForSave();
 };
 
 class CodeTabWidget : public QTabWidget {
     Q_OBJECT
 
-    void setup();
+    Project *project = nullptr;
 
-    /* Add a welcome widget */
+    void setup();
+    /** Add a welcome widget */
     void welcome();
-    /* Add a code edit widget for the given file */
+    /** Add a code edit widget for the given file */
     void addCodeEdit(const QString &filePath);
-    /* Check if the file is opened, if so, remove it */
+    /** Check if the file is opened, if so, remove it */
     void checkRemoveCodeEdit(const QString &filename);
 
 public slots:
-    /* Handle file operations (from file tree) */
+    /** Handle file operations (from the file tree) */
     void handleFileOperation(const QString &filename, FileOperation operation);
-    /* Remove the code edit widget at the given index */
+    /** Remove the code edit widget at the given index */
     void removeCodeEdit(int index);
-    /* Ask the user before removing the code edit widget */
+    /** Ask the user before removing the code edit widget */
     void removeCodeEditRequested(int index);
-    /* What to do when a widget is modified */
+    /** What to do when a widget is modified */
     void widgetModified(int index);
-    /* What to do when current tab changed */
+    /** What to do when the current tab changed */
     void onCurrentTabChanged(int index) const;
 
 public:
     explicit CodeTabWidget(QWidget *parent);
-
+    void setProject(Project *project);
     void clearAll();
     LangFileInfo currentFile() const;
     CodeEditWidget *curEdit() const;

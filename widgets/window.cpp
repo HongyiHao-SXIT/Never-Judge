@@ -7,7 +7,7 @@
 #include "../util/file.h"
 #include "setting.h"
 
-IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWindow(parent) {
+IDEMainWindow::IDEMainWindow(QWidget *parent) : QMainWindow(parent) {
     ide = new IDE();
     leftNav = new LeftIconNavigateWidget(this);
     rightNav = new RightIconNavigateWidget(this);
@@ -23,9 +23,6 @@ IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWin
 
     setup();
     connectSignals();
-
-    QString project = QString::fromStdString(std::filesystem::current_path());
-    openFolder(project);
 }
 
 void IDEMainWindow::setup() {
@@ -70,9 +67,12 @@ void IDEMainWindow::setup() {
 
 void IDEMainWindow::connectSignals() {
     // Icon navigate
-    connect(leftNav, &LeftIconNavigateWidget::toggleFileTree, fileTree, &FileTreeWidget::setVisible);
-    connect(leftNav, &LeftIconNavigateWidget::toggleTerminal, terminal, &TerminalWidget::setVisible);
-    connect(rightNav, &RightIconNavigateWidget::togglePreview, ojPreview, &OpenJudgePreviewWidget::setVisible);
+    connect(leftNav, &LeftIconNavigateWidget::toggleFileTree, fileTree,
+            &FileTreeWidget::setVisible);
+    connect(leftNav, &LeftIconNavigateWidget::toggleTerminal, terminal,
+            &TerminalWidget::setVisible);
+    connect(rightNav, &RightIconNavigateWidget::togglePreview, ojPreview,
+            &OpenJudgePreviewWidget::setVisible);
     connect(rightNav, &RightIconNavigateWidget::openSetting, this, &IDEMainWindow::openSettings);
 
     // File system
@@ -91,20 +91,23 @@ void IDEMainWindow::connectSignals() {
     connect(menuBar, &MenuBarWidget::openSettings, this, &IDEMainWindow::openSettings);
 
     // OJ
-    connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview, [this] { ojPreview->setVisible(true); });
+    connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview,
+            [this] { ojPreview->setVisible(true); });
     connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview, &OpenJudgePreviewWidget::downloadOJ);
-    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview, [this] { ojPreview->setVisible(true); });
-    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview, &OpenJudgePreviewWidget::batchDownloadOJ);
+    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview,
+            [this] { ojPreview->setVisible(true); });
+    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview,
+            &OpenJudgePreviewWidget::batchDownloadOJ);
     connect(menuBar, &MenuBarWidget::loginOJ, ojPreview, &OpenJudgePreviewWidget::loginOJ);
     connect(menuBar, &MenuBarWidget::submitOJ, this, &IDEMainWindow::submitCurrentCode);
     connect(ojPreview, &OpenJudgePreviewWidget::loginAs, menuBar, &MenuBarWidget::onLogin);
 }
 
 void IDEMainWindow::openFolder(const QString &folder) const {
-    qDebug() << "Opening folder " << folder;
+    qDebug() << "IDEMainWindow: Opening folder" << folder;
     Project project(folder);
     ide->setProject(project);
-    codeTab->clearAll();
+    codeTab->setProject(&ide->curProject());
     fileTree->setRoot(project.getRoot());
     ojPreview->clear();
     terminal->setProject(&ide->curProject());

@@ -1,19 +1,176 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QPainter>
-#include <utility>
-
-#include "../ide/highlighter.h"
-#include "code.h"
-
 #include <QVBoxLayout>
 
+#include "../ide/highlighter.h"
+#include "../ide/lsp.h"
 #include "../util/file.h"
+#include "code.h"
 #include "footer.h"
+#include "icon.h"
+
+/* Completion list */
+
+CompletionList::CompletionList(CodeEditWidget *codeEdit) :
+    QListWidget(codeEdit), codeEdit(codeEdit) {
+    setWindowFlags(Qt::Popup);
+    setSelectionMode(SingleSelection);
+    setFocusPolicy(Qt::StrongFocus);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    hide();
+
+    connect(this, &QListWidget::itemClicked, this, &CompletionList::onItemClicked);
+}
+
+void CompletionList::updateHeight() {
+    const int itemHeight = sizeHintForRow(0);
+    // at maximum 8 items
+    const int visibleItems = qMin(count(), 8);
+
+    int totalHeight = visibleItems * itemHeight + 2 * frameWidth();
+
+    setFixedHeight(totalHeight);
+    setFixedWidth(400);
+}
+
+void CompletionList::onItemClicked(const QListWidgetItem *item) {
+    emit completionSelected(item->data(Qt::UserRole).toString());
+}
+
+void CompletionList::keyPressEvent(QKeyEvent *e) {
+    if (e->key() == Qt::Key_Up || e->key() == Qt::Key_Down) {
+        QListWidget::keyPressEvent(e);
+    } else if (e->key() == Qt::Key_Tab) {
+        if (currentItem()) {
+            emit completionSelected(currentItem()->data(Qt::UserRole).toString());
+            hide();
+        }
+    } else if (e->key() == Qt::Key_Escape) {
+        hide();
+    } else {
+        codeEdit->keyPressEvent(e);
+    }
+}
+
+void CompletionList::readCompletions(const CompletionResponse &response) {
+    codeEdit->requireCompletion = response.incomplete;
+    completions = response.items;
+}
+
+void CompletionList::update(const QString &curWord) {
+    clear();
+    for (const auto &item: completions) {
+        if (item.insertText.startsWith(curWord)) {
+            addCompletionItem(item);
+        }
+    }
+}
+
+void CompletionList::addCompletionItem(const CompletionItem &item) {
+    auto *listItem = new QListWidgetItem(this);
+
+    auto *widget = new QWidget(this);
+
+    auto *layout = new QHBoxLayout(widget);
+    layout->setContentsMargins(5, 2, 5, 2);
+
+    auto *textLabel = new QLabel(item.label, this);
+    textLabel->setMaximumWidth(300);
+    textLabel->setFont(font());
+    layout->addWidget(textLabel);
+    layout->addStretch();
+
+    static const QMap<CompletionItem::ItemKind, QString> kindIconMap = {
+            {CompletionItem::Class, "code/class"},
+            {CompletionItem::Function, "code/function"},
+            {CompletionItem::Variable, "code/variable"},
+            {CompletionItem::Module, "code/module"},
+            {CompletionItem::Function, "code/function"},
+            {CompletionItem::Keyword, "code/keyword"}};
+
+    auto *iconBtn = new IconPushButton(this);
+    auto iconPath = kindIconMap.value(item.kind, "code/text");
+    iconBtn->setIconFromResName(iconPath);
+    iconBtn->setDisabled(true);
+    iconBtn->setStyleSheet(loadText("qss/completion.css"));
+    layout->addWidget(iconBtn);
+
+    widget->setLayout(layout);
+
+    listItem->setSizeHint(widget->sizeHint());
+    setItemWidget(listItem, widget);
+
+    listItem->setData(Qt::UserRole, item.insertText);
+}
+
+void CompletionList::display() {
+    setCurrentRow(0);
+    show();
+    setFocus();
+    updateHeight();
+}
+
+/* Line number area */
+
+LineNumberArea::LineNumberArea(CodeEditWidget *codeEdit) : QWidget(codeEdit), codeEdit(codeEdit) {}
+
+int LineNumberArea::getWidth() const {
+    int digits = 1;
+    int max = qMax(1, codeEdit->blockCount());
+    while (max >= 10) {
+        max /= 10;
+        ++digits;
+    }
+    // at least 3 digits width
+    int fontWidth = codeEdit->fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(digits, 3);
+    int marginWidth = L_MARGIN + R_MARGIN;
+    return fontWidth + marginWidth;
+}
+
+QSize LineNumberArea::sizeHint() const { return {getWidth(), 0}; }
+
+void LineNumberArea::paintEvent(QPaintEvent *event) {
+    QPainter painter(this);
+    painter.fillRect(event->rect(), QColor(0x252526));
+
+    QTextBlock block = codeEdit->firstVisibleBlock();
+    int blockNumber = block.blockNumber();
+    int top = static_cast<int>(
+            codeEdit->blockBoundingGeometry(block).translated(codeEdit->contentOffset()).top());
+    int bottom = top + static_cast<int>(codeEdit->blockBoundingRect(block).height());
+
+    painter.setFont(codeEdit->font());
+
+    while (block.isValid() && top <= event->rect().bottom()) {
+        if (block.isVisible() && bottom >= event->rect().top()) {
+            QString number = QString::number(blockNumber + 1);
+
+            if (blockNumber == codeEdit->textCursor().blockNumber()) {
+                painter.setPen(QColor(0xFFFFFF));
+            } else {
+                painter.setPen(QColor(0x858585));
+            }
+
+            painter.drawText(0, top, this->width() - R_MARGIN, fontMetrics().height(),
+                             Qt::AlignRight, number);
+        }
+
+        block = block.next();
+        top = bottom;
+        bottom = top + static_cast<int>(codeEdit->blockBoundingRect(block).height());
+        ++blockNumber;
+    }
+};
+
+const int LineNumberArea::L_MARGIN = 5;
+const int LineNumberArea::R_MARGIN = 5;
 
 /* Welcome widget */
 
 WelcomeWidget::WelcomeWidget(QWidget *parent) : QWidget(parent) { setup(); }
+
 void WelcomeWidget::setup() {
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->setAlignment(Qt::AlignCenter);
@@ -47,41 +204,39 @@ void WelcomeWidget::setup() {
     setLayout(mainLayout);
 }
 
+
 /* Code plain text edit widget */
 
-class LineNumberArea : public QWidget {
-    CodeEditWidget *codeEdit;
-
-public:
-    static const int L_MARGIN;
-    static const int R_MARGIN;
-
-    explicit LineNumberArea(CodeEditWidget *codeEdit) : QWidget(codeEdit), codeEdit(codeEdit) {}
-
-    QSize sizeHint() const override { return {codeEdit->LNAWidth(), 0}; }
-
-protected:
-    void paintEvent(QPaintEvent *event) override { codeEdit->LNAEvent(event); };
-};
-
-const int LineNumberArea::L_MARGIN = 5;
-const int LineNumberArea::R_MARGIN = 5;
-
-CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) : QPlainTextEdit(parent) {
-    lineNumberArea = new LineNumberArea(this);
+CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) :
+    QPlainTextEdit(parent), server(nullptr), modified(false), requireCompletion(true) {
+    lna = new LineNumberArea(this);
+    cl = new CompletionList(this);
     file = LangFileInfo(filename);
-    modified = false;
-    highlighter = HighlighterFactory::getHighlighter(file.language(), this->document());
+    highlighter = HighlighterFactory::getHighlighter(file.language(), document());
 
     readFile();
     setup();
     adaptViewport();
 
-
     connect(this, &CodeEditWidget::blockCountChanged, this, &CodeEditWidget::adaptViewport);
     connect(this, &CodeEditWidget::updateRequest, this, &CodeEditWidget::updateLineNumberArea);
     connect(this, &CodeEditWidget::cursorPositionChanged, this, &CodeEditWidget::highlightLine);
+    connect(this, &CodeEditWidget::cursorPositionChanged, cl, &QWidget::hide);
     connect(this, &QPlainTextEdit::textChanged, this, &CodeEditWidget::onTextChanged);
+    connect(cl, &CompletionList::completionSelected, this, &CodeEditWidget::insertCompletion);
+    runServer();
+}
+
+QCoro::Task<> CodeEditWidget::runServer() {
+    server = co_await LanguageServers::get(file.language());
+    if (server == nullptr) {
+        co_return;
+    }
+    auto response = co_await server->initialize(file.path(), {});
+    if (!response.ok) {
+        qWarning() << "Server of language" << langName(file.language()) << "initialized failed";
+    }
+    co_return;
 }
 
 void CodeEditWidget::setup() {
@@ -96,13 +251,18 @@ void CodeEditWidget::onSetFont(const QJsonValue &fontJson) {
     font.setPointSize(obj["size"].toInt());
     setTabStopDistance(3 * font.pointSize());
     setFont(font);
+    lna->setFont(font);
+
+    QFont sFont(font);
+    sFont.setPointSize(font.pointSize() - 3); // smaller than edit
+    cl->setFont(sFont);
 }
 
 void CodeEditWidget::resizeEvent(QResizeEvent *event) {
     QPlainTextEdit::resizeEvent(event);
 
-    QRect cr = contentsRect();
-    lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), LNAWidth(), cr.height()));
+    auto cr = contentsRect();
+    lna->setGeometry(QRect(cr.left(), cr.top(), lna->getWidth(), cr.height()));
 }
 
 
@@ -119,13 +279,67 @@ void CodeEditWidget::updateCursorPosition() const {
     }
 }
 
-void CodeEditWidget::adaptViewport() { setViewportMargins(LNAWidth(), 0, 0, 0); }
+void CodeEditWidget::adaptViewport() { setViewportMargins(lna->getWidth(), 0, 0, 0); }
+
+QCoro::Task<> CodeEditWidget::askForCompletion() const {
+    if (!server) {
+        co_return;
+    }
+    auto cursor = textCursor();
+    cursor.select(QTextCursor::WordUnderCursor);
+    auto word = cursor.selectedText();
+    if (word.isEmpty()) {
+        co_return;
+    }
+    co_await server->didOpen({file.filePath(), toPlainText()});
+
+    auto completion = co_await server->completion({file.filePath()},
+                                                  {cursor.blockNumber(), cursor.columnNumber()});
+    for (const auto &item: completion.items) {
+        if (item.insertText == word) {
+            co_return; // The word is finished and do not give completions
+        }
+    }
+
+    cl->readCompletions(completion);
+    auto rect = cursorRect();
+    auto pos = mapToGlobal(QPoint(rect.right(), rect.bottom()));
+    cl->move(pos);
+
+    co_return;
+}
+
+void CodeEditWidget::updateCompletionList() {
+    auto cursor = textCursor();
+    cursor.select(QTextCursor::WordUnderCursor);
+    auto word = cursor.selectedText();
+    if (word.isEmpty()) {
+        requireCompletion = true;
+        return;
+    }
+    cl->update(word);
+    if (cl->count() != 0) {
+        cl->display();
+    } else {
+        cl->hide();
+    }
+}
+
+void CodeEditWidget::insertCompletion(const QString &completion) {
+    auto cursor = textCursor();
+    cursor.select(QTextCursor::WordUnderCursor);
+    cursor.removeSelectedText();
+    cursor.insertText(completion);
+    cl->hide();
+    setFocus();
+    requireCompletion = true;
+}
 
 void CodeEditWidget::updateLineNumberArea(const QRect &rect, int dy) {
     if (dy) {
-        lineNumberArea->scroll(0, dy);
+        lna->scroll(0, dy);
     } else {
-        lineNumberArea->update(0, rect.y(), lineNumberArea->width(), rect.height());
+        lna->update(0, rect.y(), lna->width(), rect.height());
     }
 
     if (rect.contains(viewport()->rect())) {
@@ -136,51 +350,6 @@ void CodeEditWidget::updateLineNumberArea(const QRect &rect, int dy) {
 const LangFileInfo &CodeEditWidget::getFile() const { return file; }
 
 QString CodeEditWidget::getTabText() const { return file.fileName(); };
-
-int CodeEditWidget::LNAWidth() const {
-    int digits = 1;
-    int max = qMax(1, blockCount());
-    while (max >= 10) {
-        max /= 10;
-        ++digits;
-    }
-    // at least 3 digits width
-    int fontWidth = fontMetrics().horizontalAdvance(QLatin1Char('9')) * qMax(digits, 3);
-    int marginWidth = LineNumberArea::L_MARGIN + LineNumberArea::R_MARGIN;
-    return fontWidth + marginWidth;
-}
-void CodeEditWidget::LNAEvent(const QPaintEvent *event) const {
-    QPainter painter(lineNumberArea);
-    painter.fillRect(event->rect(), QColor(0x252526));
-
-    QTextBlock block = firstVisibleBlock();
-    int blockNumber = block.blockNumber();
-    int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
-    int bottom = top + (int) blockBoundingRect(block).height();
-
-    QFont font = this->font();
-    painter.setFont(font);
-
-    while (block.isValid() && top <= event->rect().bottom()) {
-        if (block.isVisible() && bottom >= event->rect().top()) {
-            QString number = QString::number(blockNumber + 1);
-
-            if (blockNumber == textCursor().blockNumber()) {
-                painter.setPen(QColor(0xFFFFFF));
-            } else {
-                painter.setPen(QColor(0x858585));
-            }
-
-            painter.drawText(0, top, lineNumberArea->width() - LineNumberArea::R_MARGIN, fontMetrics().height(),
-                             Qt::AlignRight, number);
-        }
-
-        block = block.next();
-        top = bottom;
-        bottom = top + static_cast<int>(blockBoundingRect(block).height());
-        ++blockNumber;
-    }
-}
 
 void CodeEditWidget::highlightLine() {
     QList<QTextEdit::ExtraSelection> selections;
@@ -221,7 +390,7 @@ void CodeEditWidget::readFile() {
                     c.category() != QChar::Other_Surrogate && // Cs
                     c.category() != QChar::Other_Format) {
                     setReadOnly(true);
-                    lineNumberArea->setVisible(false);
+                    lna->setVisible(false);
                     setPlainText(tr("文件格式不支持"));
                     check.close();
                     return;
@@ -238,7 +407,7 @@ void CodeEditWidget::readFile() {
     QString buffer;
     if (read.size() > MAX_BUFFER_SIZE) {
         buffer = tr("文件过大，无法在编辑器内打开");
-        lineNumberArea->setVisible(false);
+        lna->setVisible(false);
         setReadOnly(true);
     } else {
         buffer = read.readAll();
@@ -263,8 +432,9 @@ bool CodeEditWidget::askForSave() {
         return true;
     }
     // if the content is modified, ask for save
-    QMessageBox::StandardButton reply = QMessageBox::question(this, tr("保存文件"), tr("文件已修改，是否保存？"),
-                                                              QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+    QMessageBox::StandardButton reply =
+            QMessageBox::question(this, tr("保存文件"), tr("文件已修改，是否保存？"),
+                                  QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
     if (reply == QMessageBox::Yes) {
         saveFile();
     } else if (reply == QMessageBox::Cancel) {
@@ -273,18 +443,23 @@ bool CodeEditWidget::askForSave() {
     return true;
 }
 
-void CodeEditWidget::onTextChanged() {
+QCoro::Task<> CodeEditWidget::onTextChanged() {
     // This is a hack!
     // If highlighter has not changed the text, we should not emit modify signal
     if (highlighter->textNotChanged) {
         highlighter->textNotChanged = false;
-        return;
+        co_return;
     }
 
     if (!modified) {
         modified = true;
         emit modify();
     }
+    if (requireCompletion) {
+        co_await askForCompletion();
+    }
+    updateCompletionList();
+    co_return;
 }
 
 /* Code tab widget */
@@ -294,6 +469,11 @@ CodeTabWidget::CodeTabWidget(QWidget *parent) : QTabWidget(parent) {
     welcome();
     connect(this, &QTabWidget::tabCloseRequested, this, &CodeTabWidget::removeCodeEditRequested);
     connect(this, &QTabWidget::currentChanged, this, &CodeTabWidget::onCurrentTabChanged);
+}
+
+void CodeTabWidget::setProject(Project *project) {
+    this->project = project;
+    clearAll();
 }
 
 void CodeTabWidget::clearAll() {
@@ -309,8 +489,12 @@ void CodeTabWidget::setup() {
     setStyleSheet(loadText("qss/code.css"));
 }
 
-CodeEditWidget *CodeTabWidget::curEdit() const { return qobject_cast<CodeEditWidget *>(currentWidget()); }
-CodeEditWidget *CodeTabWidget::editAt(int index) const { return qobject_cast<CodeEditWidget *>(widget(index)); }
+CodeEditWidget *CodeTabWidget::curEdit() const {
+    return qobject_cast<CodeEditWidget *>(currentWidget());
+}
+CodeEditWidget *CodeTabWidget::editAt(int index) const {
+    return qobject_cast<CodeEditWidget *>(widget(index));
+}
 
 void CodeTabWidget::welcome() { addTab(new WelcomeWidget(this), "欢迎"); }
 

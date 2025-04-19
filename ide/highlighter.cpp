@@ -38,7 +38,8 @@ QPair<TSLanguage *, QString> Highlighter::toTSLanguage(Language language) {
         return {nullptr, ""};
     }
 
-    auto languageFn = reinterpret_cast<TSLanguage *(*) ()>(tsLib.resolve(("tree_sitter_" + name).toUtf8()));
+    auto languageFn =
+            reinterpret_cast<TSLanguage *(*) ()>(tsLib.resolve(("tree_sitter_" + name).toUtf8()));
     if (!languageFn) {
         qWarning() << "Failed to resolve tree-sitter language function:" << tsLib.errorString();
         return {nullptr, ""};
@@ -74,11 +75,12 @@ void Highlighter::setupBracketQuery() {
 
     uint32_t errorOffset;
     TSQueryError errorType;
-    bracketQuery = ts_query_new(language, queryPattern, strlen(queryPattern), &errorOffset, &errorType);
+    bracketQuery =
+            ts_query_new(language, queryPattern, strlen(queryPattern), &errorOffset, &errorType);
 
     if (!bracketQuery) {
-        qWarning() << "Failed to create bracket query for language" << langName << "at offset" << errorOffset
-                   << "with error" << errorType;
+        qWarning() << "Failed to create bracket query for language" << langName << "at offset"
+                   << errorOffset << "with error" << errorType;
         return;
     }
 
@@ -116,7 +118,7 @@ void Highlighter::highlightBlock(const QString &text) {
 
 QTextCharFormat Highlighter::matchFormat(QTextCharFormat format) {
     format.setFontWeight(QFont::Bold);
-    format.setTextOutline(QPen(0xDD5500));
+    format.setForeground(QColor(0xFF0000));
     return format;
 }
 
@@ -130,8 +132,8 @@ void Highlighter::highlightBracketPairs(const QString &text) {
         return;
 
     QChar cursorChar = text.at(cursorPosInBlock);
-    if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' && cursorChar != '[' &&
-        cursorChar != ']') {
+    if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' &&
+        cursorChar != '[' && cursorChar != ']') {
         return;
     }
 
@@ -171,7 +173,7 @@ void Highlighter::highlightBracketPairs(const QString &text) {
             int right = rightCharPos - blockPos;
 
             if (cursorPosInBlock == left || cursorPosInBlock == right) {
-                // TODO: Bracket cross lines?
+                // FIXME: Bracket cross lines?
                 // QTextBlock block = currentBlock();
                 // bool thisLine = true;
                 //
@@ -214,7 +216,8 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
         if (obj.contains("language")) {
             // skip other languages' rules
             auto languageJSON = obj["language"];
-            auto languages = languageJSON.isArray() ? languageJSON.toArray() : QJsonArray{languageJSON};
+            auto languages =
+                    languageJSON.isArray() ? languageJSON.toArray() : QJsonArray{languageJSON};
             bool found = false;
             for (const auto &lang: languages) {
                 if (lang.toString() == langName) {
@@ -278,7 +281,7 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
 void Highlighter::parseDocument() {
     auto utf8Content = document()->toPlainText().toUtf8();
 
-    // FIXME: use old tree here for better performance
+    // TODO: use old tree here for better performance
     if (tree) {
         ts_tree_delete(tree);
     }
