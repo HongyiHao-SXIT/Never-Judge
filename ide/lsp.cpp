@@ -5,15 +5,23 @@
 #include <qcoro/qcoroprocess.h>
 
 QJsonObject LSPTextDocument::toJson() const {
+    static QMap<Language, QString> languageMap{
+            {Language::C, "c"}, {Language::CPP, "cpp"}, {Language::PYTHON, "python"}};
+
     QJsonObject obj;
-    obj["uri"] = uri;
+    // FIXME: this is linux only...?
+    obj["uri"] = QString("file://%1").arg(url.toEncoded());
+    obj["version"] = version;
+    obj["languageId"] = languageMap.value(language, "");
     if (text.has_value()) {
         obj["text"] = text.value();
     }
     return obj;
 }
 
-std::pair<QString, QJsonValue> LSPTextDocument::toEntry() const { return {"textDocument", toJson()}; }
+std::pair<QString, QJsonValue> LSPTextDocument::toEntry() const {
+    return {"textDocument", toJson()};
+}
 
 QJsonObject LSPPosition::toJson() const { return {{"line", line}, {"character", character}}; }
 
@@ -23,11 +31,6 @@ void InitializeResponse::parseJson(const QJsonObject &response) {
     // check the necessary keys
     ok = response.contains("id") && response.contains("jsonrpc") && response.contains("result");
 }
-
-void DidOpenResponse::parseJson(const QJsonObject &response) {
-    ok = response.contains("result") && response["result"].isNull();
-}
-
 
 void CompletionResponse::parseJson(const QJsonObject &response) {
     auto result = response["result"].toObject();
@@ -43,26 +46,31 @@ void CompletionResponse::parseJson(const QJsonObject &response) {
     }
 }
 
+bool isNotification(LSPRequestMethod method) { return method == DidOpen; }
+
 /* Language Server */
+const QMap<LSPRequestMethod, QString> methodMap = {
+        {Initialize, "initialize"},
+        {Shutdown, "shutdown"},
+        {DidOpen, "textDocument/didOpen"},
+        {Completion, "textDocument/completion"},
+        {Definition, "textDocument/definition"},
+        {Hover, "textDocument/hover"},
+        {References, "textDocument/references"},
+        {Formatting, "textDocument/formatting"},
+        {Rename, "textDocument/rename"},
+        {PublishDiagnostics, "textDocument/publishDiagnostics"},
+        {DocumentSymbol, "textDocument/documentSymbol"}};
+
 
 void LanguageServer::sendRequest(LSPRequestMethod method, const QJsonObject &payload) const {
-    static const QMap<LSPRequestMethod, QString> methodMap = {
-            {Initialize, "initialize"},
-            {Shutdown, "shutdown"},
-            {DidOpen, "textDocument/didOpen"},
-            {Completion, "textDocument/completion"},
-            {Definition, "textDocument/definition"},
-            {Hover, "textDocument/hover"},
-            {References, "textDocument/references"},
-            {Formatting, "textDocument/formatting"},
-            {Rename, "textDocument/rename"},
-            {PublishDiagnostics, "textDocument/publishDiagnostics"},
-            {DocumentSymbol, "textDocument/documentSymbol"}};
     static int requestId = 0;
 
     QJsonObject request;
     request["jsonrpc"] = "2.0";
-    request["id"] = ++requestId;
+    if (!isNotification(method)) {
+        request["id"] = ++requestId;
+    }
     request["method"] = methodMap[method];
     request["params"] = payload;
 
@@ -73,18 +81,27 @@ void LanguageServer::sendRequest(LSPRequestMethod method, const QJsonObject &pay
     auto content = header.toUtf8() + data;
     // qDebug() << content;
     process->write(content);
+
+    // TODO: return the request ID and make sure of the corresponding between request and response
 }
+
 template<std::derived_from<LSPResponse> R>
 QCoro::Task<R> LanguageServer::waitResponse() const {
+    auto pw = qCoro(process); // Coroutine wrapper for QProcess
+    co_await pw.waitForReadyRead(3000);
     while (true) {
-        co_await qCoro(process).waitForReadyRead(3000);
-        QByteArray line = process->readLine();
-
+        QByteArray line = co_await pw.readLine();
         if (line.startsWith("Content-Length:")) {
             int length = line.mid(16).toInt();
-            process->readLine(); // Skip content-type line
-            process->readLine(); // Skip empty line
-            QByteArray data = process->read(length);
+
+            // Skip empty line
+            line = co_await pw.readLine();
+            if (line.startsWith("Content-Type:")) {
+                // pylsp has the content type line
+                co_await pw.readLine();
+            }
+
+            QByteArray data = co_await pw.read(length);
             QJsonDocument doc = QJsonDocument::fromJson(data);
             QJsonObject json = doc.object();
 
@@ -95,7 +112,6 @@ QCoro::Task<R> LanguageServer::waitResponse() const {
                 // }
                 continue;
             }
-
             R response;
             if (json.contains("error")) {
                 qWarning() << "Response error:" << json["error"];
@@ -119,11 +135,10 @@ QCoro::Task<InitializeResponse> LanguageServer::initialize(const QString &rootUr
     co_return response;
 }
 
-QCoro::Task<DidOpenResponse> LanguageServer::didOpen(const LSPTextDocument &document) const {
+QCoro::Task<> LanguageServer::didOpen(const LSPTextDocument &document) const {
     QJsonObject payload = {document.toEntry()};
     sendRequest(DidOpen, payload);
-    auto response = co_await waitResponse<DidOpenResponse>();
-    co_return response;
+    co_return;
 }
 
 QCoro::Task<CompletionResponse> LanguageServer::completion(const LSPTextDocument &document,
@@ -134,17 +149,39 @@ QCoro::Task<CompletionResponse> LanguageServer::completion(const LSPTextDocument
     co_return response;
 }
 
-PythonLanguageServer *PythonLanguageServer::instance = nullptr;
+ClangdLanguageServer *ClangdLanguageServer::instance = nullptr;
 
-QCoro::Task<PythonLanguageServer *> PythonLanguageServer::getServer() {
+QCoro::Task<ClangdLanguageServer *> ClangdLanguageServer::getServer() {
     if (instance == nullptr) {
-        instance = new PythonLanguageServer();
+        instance = new ClangdLanguageServer();
+        qDebug() << "ClangdLanguageServer: Server created";
         co_await instance->start();
     }
     co_return instance;
 }
 
-QCoro::Task<> PythonLanguageServer::start() {
+QCoro::Task<> ClangdLanguageServer::start() {
+    QString serverName = "clangd";
+    QStringList serverParams = {"--log=verbose"};
+    process = new QProcess(this);
+    process->setProcessChannelMode(QProcess::SeparateChannels);
+    co_await qCoro(process).start(serverName, serverParams);
+    co_return;
+}
+
+PylspLanguageServer *PylspLanguageServer::instance = nullptr;
+
+QCoro::Task<PylspLanguageServer *> PylspLanguageServer::getServer() {
+    if (instance == nullptr) {
+        instance = new PylspLanguageServer();
+        qDebug() << "PylspLanguageServer: Server created";
+        co_await instance->start();
+    }
+    co_return instance;
+}
+
+QCoro::Task<> PylspLanguageServer::start() {
+    // TODO: use pyright later?
     QString serverName = "pylsp";
     QStringList serverParams = {"-vv"};
     process = new QProcess(this);
@@ -155,8 +192,11 @@ QCoro::Task<> PythonLanguageServer::start() {
 
 QCoro::Task<LanguageServer *> LanguageServers::get(Language language) {
     switch (language) {
+        case Language::C:
+        case Language::CPP:
+            co_return co_await ClangdLanguageServer::getServer();
         case Language::PYTHON:
-            co_return co_await PythonLanguageServer::getServer();
+            co_return co_await PylspLanguageServer::getServer();
         default:
             co_return nullptr;
     }

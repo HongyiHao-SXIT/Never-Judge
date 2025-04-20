@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QMutex>
 #include <QProcess>
+#include <QPromise>
 #include <qcorotask.h>
 
 #include "language.h"
@@ -25,8 +26,10 @@ enum LSPRequestMethod {
 };
 
 struct LSPTextDocument {
-    QString uri;
+    QUrl url;
+    Language language;
     std::optional<QString> text = std::nullopt;
+    int version = 1;
 
     QJsonObject toJson() const;
     std::pair<QString, QJsonValue> toEntry() const;
@@ -56,11 +59,6 @@ struct ShutdownResponse : LSPResponse {
     void parseJson(const QJsonObject &response) override;
 };
 
-struct DidOpenResponse : LSPResponse {
-    bool ok;
-    void parseJson(const QJsonObject &response) override;
-};
-
 struct CompletionItem {
     enum ItemKind {
         Text = 1,
@@ -77,7 +75,17 @@ struct CompletionItem {
         Value = 12,
         Enum = 13,
         Keyword = 14,
-        Snippet = 15
+        Snippet = 15,
+        Color = 16,
+        File = 17,
+        Reference = 18,
+        Folder = 19,
+        EnumMember = 20,
+        Constant = 21,
+        Struct = 22,
+        Event = 23,
+        Operator = 24,
+        TypeParameter = 25
     };
 
     QString label;
@@ -108,15 +116,23 @@ public:
                                                const QJsonObject &capabilities) const;
     QCoro::Task<CompletionResponse> completion(const LSPTextDocument &document,
                                                const LSPPosition &position) const;
-    QCoro::Task<DidOpenResponse> didOpen(const LSPTextDocument &document) const;
+    QCoro::Task<> didOpen(const LSPTextDocument &document) const;
     // TODO: support more functions in LSP
 };
 
-class PythonLanguageServer : public LanguageServer {
-    static PythonLanguageServer *instance;
+class ClangdLanguageServer : public LanguageServer {
+    static ClangdLanguageServer *instance;
 
 public:
-    static QCoro::Task<PythonLanguageServer *> getServer();
+    static QCoro::Task<ClangdLanguageServer *> getServer();
+    QCoro::Task<> start() override;
+};
+
+class PylspLanguageServer : public LanguageServer {
+    static PylspLanguageServer *instance;
+
+public:
+    static QCoro::Task<PylspLanguageServer *> getServer();
     QCoro::Task<> start() override;
 };
 

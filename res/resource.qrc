@@ -16,6 +16,8 @@
         <file>icons/code/variable.svg</file>
         <file>icons/code/class.svg</file>
         <file>icons/code/module.svg</file>
+        <file>icons/code/file.svg</file>
+        <file>icons/code/enum.svg</file>
         <file>qss/footer.css</file>
         <file>qss/code.css</file>
         <file>qss/completion.css</file>

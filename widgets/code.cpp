@@ -50,6 +50,9 @@ void CompletionList::keyPressEvent(QKeyEvent *e) {
     } else if (e->key() == Qt::Key_Escape) {
         hide();
     } else {
+        if (e->key() == Qt::Key_Return) {
+            hide();
+        }
         codeEdit->keyPressEvent(e);
     }
 }
@@ -61,6 +64,11 @@ void CompletionList::readCompletions(const CompletionResponse &response) {
 
 void CompletionList::update(const QString &curWord) {
     clear();
+    for (const auto &item: completions) {
+        if (item.insertText == curWord) {
+            return; // The word is finished and do not give completions
+        }
+    }
     for (const auto &item: completions) {
         if (item.insertText.startsWith(curWord)) {
             addCompletionItem(item);
@@ -85,10 +93,18 @@ void CompletionList::addCompletionItem(const CompletionItem &item) {
     static const QMap<CompletionItem::ItemKind, QString> kindIconMap = {
             {CompletionItem::Class, "code/class"},
             {CompletionItem::Function, "code/function"},
+            {CompletionItem::Interface, "code/class"},
+            {CompletionItem::Field, "code/variable"},
             {CompletionItem::Variable, "code/variable"},
             {CompletionItem::Module, "code/module"},
             {CompletionItem::Function, "code/function"},
-            {CompletionItem::Keyword, "code/keyword"}};
+            {CompletionItem::Keyword, "code/keyword"},
+            {CompletionItem::File, "code/file"},
+            {CompletionItem::Struct, "code/class"},
+            {CompletionItem::Enum, "code/enum"},
+            {CompletionItem::Reference, "code/variable"},
+            {CompletionItem::Property, "code/variable"},
+    };
 
     auto *iconBtn = new IconPushButton(this);
     auto iconPath = kindIconMap.value(item.kind, "code/text");
@@ -221,7 +237,6 @@ CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) :
     connect(this, &CodeEditWidget::blockCountChanged, this, &CodeEditWidget::adaptViewport);
     connect(this, &CodeEditWidget::updateRequest, this, &CodeEditWidget::updateLineNumberArea);
     connect(this, &CodeEditWidget::cursorPositionChanged, this, &CodeEditWidget::highlightLine);
-    connect(this, &CodeEditWidget::cursorPositionChanged, cl, &QWidget::hide);
     connect(this, &QPlainTextEdit::textChanged, this, &CodeEditWidget::onTextChanged);
     connect(cl, &CompletionList::completionSelected, this, &CodeEditWidget::insertCompletion);
     runServer();
@@ -291,7 +306,7 @@ QCoro::Task<> CodeEditWidget::askForCompletion() const {
     if (word.isEmpty()) {
         co_return;
     }
-    co_await server->didOpen({file.filePath(), toPlainText()});
+    co_await server->didOpen({file.filePath(), file.language(), toPlainText()});
 
     auto completion = co_await server->completion({file.filePath()},
                                                   {cursor.blockNumber(), cursor.columnNumber()});
