@@ -7,6 +7,10 @@
 #include "../ide/lsp.h"
 #include "../util/file.h"
 #include "code.h"
+
+#include <QThread>
+#include <QTimer>
+
 #include "footer.h"
 #include "icon.h"
 
@@ -234,15 +238,22 @@ CodeEditWidget::CodeEditWidget(const QString &filename, QWidget *parent) :
     setup();
     adaptViewport();
 
+    connect(this, &CodeEditWidget::setupFinished, this, &CodeEditWidget::onSetupFinished);
     connect(this, &CodeEditWidget::blockCountChanged, this, &CodeEditWidget::adaptViewport);
     connect(this, &CodeEditWidget::updateRequest, this, &CodeEditWidget::updateLineNumberArea);
     connect(this, &CodeEditWidget::cursorPositionChanged, this, &CodeEditWidget::highlightLine);
     connect(this, &QPlainTextEdit::textChanged, this, &CodeEditWidget::onTextChanged);
     connect(cl, &CompletionList::completionSelected, this, &CodeEditWidget::insertCompletion);
-    runServer();
+    connect(this, &CodeEditWidget::toggleComment, this, &CodeEditWidget::onToggleComment);
+    connect(this, &CodeEditWidget::jumpToDefinition, this, &CodeEditWidget::askForDefinition);
+
+    emit setupFinished();
 }
 
-QCoro::Task<> CodeEditWidget::runServer() {
+QCoro::Task<> CodeEditWidget::onSetupFinished() {
+    if (highlighter) {
+        highlighter->parseDocument();
+    }
     server = co_await LanguageServers::get(file.language());
     if (server == nullptr) {
         co_return;
@@ -283,13 +294,24 @@ void CodeEditWidget::resizeEvent(QResizeEvent *event) {
 
 void CodeEditWidget::keyPressEvent(QKeyEvent *e) {
     QPlainTextEdit::keyPressEvent(e);
+    if (e->key() == Qt::Key_Slash && e->modifiers() & Qt::ControlModifier) {
+        emit toggleComment();
+        return;
+    }
     updateCursorPosition();
+}
+
+void CodeEditWidget::mousePressEvent(QMouseEvent *e) {
+    QPlainTextEdit::mousePressEvent(e);
+    if (e->button() == Qt::LeftButton && e->modifiers() & Qt::ControlModifier) {
+        emit jumpToDefinition();
+    }
 }
 
 void CodeEditWidget::updateCursorPosition() const {
     if (auto *highlighter = document()->findChild<QSyntaxHighlighter *>()) {
         if (auto *hl = dynamic_cast<Highlighter *>(highlighter)) {
-            hl->setCursorPosition(textCursor().position());
+            hl->setCursorPosition(textCursor().position(), textCursor().block());
         }
     }
 }
@@ -300,15 +322,30 @@ QCoro::Task<> CodeEditWidget::askForCompletion() const {
     if (!server) {
         co_return;
     }
+
+    // Debounce mechanism
+    static QDateTime lastRequestTime;
+    // Skip if user requested recently (within 300 ms)
+    QDateTime now = QDateTime::currentDateTime();
+    if (lastRequestTime.isValid() && lastRequestTime.msecsTo(now) < 300) {
+        lastRequestTime = now;
+        co_return;
+    }
+    lastRequestTime = now;
+
     auto cursor = textCursor();
     cursor.select(QTextCursor::WordUnderCursor);
     auto word = cursor.selectedText();
     if (word.isEmpty()) {
         co_return;
     }
-    co_await server->didOpen({file.filePath(), file.language(), toPlainText()});
 
-    auto completion = co_await server->completion({file.filePath()},
+    if (modified) {
+        co_await server->didOpen(
+                {LSPUri::fromQUrl(file.filePath()), file.language(), toPlainText()});
+    }
+
+    auto completion = co_await server->completion({LSPUri::fromQUrl(file.filePath())},
                                                   {cursor.blockNumber(), cursor.columnNumber()});
     for (const auto &item: completion.items) {
         if (item.insertText == word) {
@@ -329,6 +366,7 @@ void CodeEditWidget::updateCompletionList() {
     cursor.select(QTextCursor::WordUnderCursor);
     auto word = cursor.selectedText();
     if (word.isEmpty()) {
+        cl->hide();
         requireCompletion = true;
         return;
     }
@@ -348,6 +386,103 @@ void CodeEditWidget::insertCompletion(const QString &completion) {
     cl->hide();
     setFocus();
     requireCompletion = true;
+}
+
+void CodeEditWidget::onToggleComment() {
+    QString prefix = LanguageServer::commentPrefix(file.language());
+    if (prefix.isEmpty()) {
+        return;
+    }
+    auto insertPrefix = prefix + " "; // add a space after the comment prefix
+
+    QTextCursor cursor = textCursor();
+    int originPosInBlock = cursor.positionInBlock();
+    int originPos = cursor.position();
+    int originBlock = cursor.blockNumber();
+
+    int startPos = cursor.selectionStart();
+    int endPos = cursor.selectionEnd();
+    cursor.setPosition(startPos);
+    int startLine = cursor.blockNumber();
+    cursor.setPosition(endPos);
+    int endLine = cursor.blockNumber();
+
+    bool comment = false;
+    int commentIndex = INT_MAX;
+
+    cursor.setPosition(startPos);
+    for (int i = startLine; i <= endLine; i++) {
+        cursor.movePosition(QTextCursor::StartOfLine);
+        QString lineText = cursor.block().text();
+        if (!lineText.trimmed().startsWith(prefix)) {
+            comment = true;
+        }
+        int firstNonSpace = 0;
+        while (firstNonSpace < lineText.length() && lineText.at(firstNonSpace).isSpace()) {
+            firstNonSpace++;
+        }
+        int index = firstNonSpace < lineText.length() ? firstNonSpace : 0;
+        commentIndex = qMin(commentIndex, index);
+    }
+
+    cursor.beginEditBlock();
+
+    int movement = 0;
+    cursor.setPosition(startPos);
+    for (int i = startLine; i <= endLine; i++) {
+        cursor.movePosition(QTextCursor::StartOfLine);
+
+        QString lineText = cursor.block().text();
+        if (comment) {
+            // comment
+            cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, commentIndex);
+            cursor.insertText(insertPrefix);
+        } else {
+            // uncomment
+            cursor.movePosition(QTextCursor::StartOfLine);
+            int index = lineText.indexOf(prefix);
+            cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, index);
+            int n = lineText.trimmed().startsWith(insertPrefix) ? insertPrefix.length()
+                                                                : prefix.length();
+            cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, n);
+            if (i == originBlock && index <= originPosInBlock) {
+                movement = insertPrefix.length();
+            }
+            cursor.removeSelectedText();
+        }
+        if (i != endLine) {
+            cursor.movePosition(QTextCursor::NextBlock);
+        }
+    }
+
+    cursor.endEditBlock();
+
+    cursor.setPosition(originPos);
+    if (comment) {
+        cursor.movePosition(QTextCursor::NextBlock);
+    } else {
+        cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, movement);
+    }
+    setTextCursor(cursor);
+}
+
+QCoro::Task<> CodeEditWidget::askForDefinition() {
+    QTextCursor cursor = textCursor();
+
+    if (modified) {
+        co_await server->didOpen(
+                {LSPUri::fromQUrl(file.filePath()), file.language(), toPlainText()});
+    }
+
+    auto definition = co_await server->definition({LSPUri::fromQUrl(file.filePath())},
+                                                  {cursor.blockNumber(), cursor.columnNumber()});
+    if (definition.items.isEmpty()) {
+        co_return;
+    }
+    // just use the first element for test here
+    auto start = definition.items[0].range.start, end = definition.items[0].range.end;
+    emit jumpTo(definition.items[0].uri.toQUrl(), start.line, start.character, end.line,
+                end.character);
 }
 
 void CodeEditWidget::updateLineNumberArea(const QRect &rect, int dy) {
@@ -434,7 +569,8 @@ void CodeEditWidget::readFile() {
 void CodeEditWidget::saveFile() {
     QFile qfile(file.filePath());
     if (!qfile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "CodeEditWidget::saveFile: Failed to open file " << file.filePath();
+        QMessageBox::warning(this, "错误",
+                             tr("文件 %1 保存失败, 请检查用户权限！").arg(file.filePath()));
         return;
     }
     modified = false;
@@ -457,6 +593,28 @@ bool CodeEditWidget::askForSave() {
     }
     return true;
 }
+
+void CodeEditWidget::cursorMoveTo(int startLine, int startChar, int endLine, int endChar) {
+    QTextDocument *doc = document();
+
+    startLine = qBound(0, startLine, doc->blockCount() - 1);
+    endLine = qBound(0, endLine, doc->blockCount() - 1);
+
+    QTextBlock startBlock = doc->findBlockByNumber(startLine);
+    QTextBlock endBlock = doc->findBlockByNumber(endLine);
+    startChar = qBound(0, startChar, startBlock.length() - 1);
+    endChar = qBound(0, endChar, endBlock.length() - 1);
+
+    QTextCursor cursor(doc);
+    cursor.setPosition(startBlock.position() + startChar);
+    if (startLine != endLine || startChar != endChar) {
+        cursor.setPosition(endBlock.position() + endChar, QTextCursor::KeepAnchor);
+    }
+
+    setTextCursor(cursor);
+    ensureCursorVisible();
+}
+
 
 QCoro::Task<> CodeEditWidget::onTextChanged() {
     // This is a hack!
@@ -513,20 +671,22 @@ CodeEditWidget *CodeTabWidget::editAt(int index) const {
 
 void CodeTabWidget::welcome() { addTab(new WelcomeWidget(this), "欢迎"); }
 
-void CodeTabWidget::addCodeEdit(const QString &filePath) {
+CodeEditWidget *CodeTabWidget::addCodeEdit(const QString &filePath) {
     // find if the file is already opened
     for (int i = 0; i < count(); ++i) {
         auto *edit = editAt(i);
         if (edit && edit->getFile().filePath() == filePath) {
             setCurrentIndex(i); // switch to the existing tab
-            return;
+            return edit;
         }
     }
 
     auto *edit = new CodeEditWidget(filePath, this);
     int index = addTab(edit, edit->getTabText());
     connect(edit, &CodeEditWidget::modify, this, [this, index] { widgetModified(index); });
+    connect(edit, &CodeEditWidget::jumpTo, this, &CodeTabWidget::jumpTo);
     setCurrentIndex(index);
+    return edit;
 }
 
 void CodeTabWidget::checkRemoveCodeEdit(const QString &filename) {
@@ -599,4 +759,10 @@ void CodeTabWidget::save() {
 void CodeTabWidget::onCurrentTabChanged(int) const {
     const auto *edit = curEdit();
     FooterWidget::instance().setFileLabel(edit ? edit->getFile().filePath() : "");
+}
+
+void CodeTabWidget::jumpTo(const QUrl &url, int startLine, int startChar, int endLine,
+                           int endChar) {
+    auto edit = addCodeEdit(url.url());
+    edit->cursorMoveTo(startLine, startChar, endLine, endChar);
 }

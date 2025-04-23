@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
+#include <qcorotask.h>
 #include <tree_sitter/api.h>
 
 #include "language.h"
@@ -36,11 +37,13 @@ class Highlighter : public QSyntaxHighlighter {
     QList<Query> queries;
     QList<QueryResult> results;
 
+    bool parsing;
+
     int currentCursorPos = -1;
+    QTextBlock lastBlock;
     TSQuery *bracketQuery = nullptr;
     TSQueryCursor *bracketCursor = nullptr;
 
-    void parseDocument();
     static int byteToCharPosition(uint32_t bytePos, const QByteArray &utf8);
     void highlightBlock(const QString &text) override;
     void setupBracketQuery();
@@ -53,11 +56,11 @@ private slots:
 
 public:
     mutable bool textNotChanged = true;
-
     Highlighter(const TSLanguage *language, QString langName, QTextDocument *parent);
     ~Highlighter() override;
     static QPair<TSLanguage *, QString> toTSLanguage(Language language);
-    void setCursorPosition(int pos);
+    QCoro::Task<> parseDocument();
+    void setCursorPosition(int pos, const QTextBlock &block);
 };
 class HighlighterFactory {
 public:

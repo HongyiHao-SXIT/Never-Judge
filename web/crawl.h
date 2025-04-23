@@ -1,7 +1,6 @@
 #ifndef CRAWL_H
 #define CRAWL_H
 
-#include <QFile>
 #include <expected>
 #include <qcoro/qcoronetworkreply.h>
 #include <qcorotask.h>

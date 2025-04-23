@@ -1,7 +1,6 @@
 #ifndef LANGUAGE_H
 #define LANGUAGE_H
 
-#include <QString>
 #include <QFileInfo>
 
 enum class Language { C, CPP, C_MAKE_LISTS, PYTHON, UNKNOWN };

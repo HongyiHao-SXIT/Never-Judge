@@ -76,10 +76,10 @@ class CodeEditWidget : public QPlainTextEdit {
     bool requireCompletion;
 
     void setup();
-    /** Run the language server */
-    QCoro::Task<> runServer();
 
 private slots:
+    /** Async initialization */
+    QCoro::Task<> onSetupFinished();
     /** Font setter for configs */
     void onSetFont(const QJsonValue &value);
     /** Adapt the viewport margins */
@@ -98,19 +98,27 @@ private slots:
     void updateCompletionList();
     /** Insert the given completion */
     void insertCompletion(const QString &completion);
+    /** Toggle the comment (if available) */
+    void onToggleComment();
+    /** Ask the language server for definition */
+    QCoro::Task<> askForDefinition();
+
 signals:
     void setupFinished();
     void modify();
+    void toggleComment();
+    void jumpToDefinition();
+    void jumpTo(QUrl url, int startLine, int startChar, int endLine, int endChar);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
     void keyPressEvent(QKeyEvent *e) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 public:
     explicit CodeEditWidget(const QString &filename, QWidget *parent = nullptr);
 
     const LangFileInfo &getFile() const;
-
     QString getTabText() const;
     /** Read the file content and display it */
     void readFile();
@@ -118,6 +126,8 @@ public:
     void saveFile();
     /** Check if the content is modified, if so, ask for save */
     bool askForSave();
+    /** Move the cursor to the given position */
+    void cursorMoveTo(int startLine, int startChar, int endLine, int endChar);
 };
 
 class CodeTabWidget : public QTabWidget {
@@ -129,7 +139,7 @@ class CodeTabWidget : public QTabWidget {
     /** Add a welcome widget */
     void welcome();
     /** Add a code edit widget for the given file */
-    void addCodeEdit(const QString &filePath);
+    CodeEditWidget *addCodeEdit(const QString &filePath);
     /** Check if the file is opened, if so, remove it */
     void checkRemoveCodeEdit(const QString &filename);
 
@@ -144,6 +154,8 @@ public slots:
     void widgetModified(int index);
     /** What to do when the current tab changed */
     void onCurrentTabChanged(int index) const;
+    /** Jump to the given range */
+    void jumpTo(const QUrl &url, int startLine, int startChar, int endLine, int endChar);
 
 public:
     explicit CodeTabWidget(QWidget *parent);

@@ -4,13 +4,18 @@
 #include <qcoreapplication.h>
 #include <qcoro/qcoroprocess.h>
 
+// FIXME: this is linux only...?
+
+LSPUri LSPUri::fromQUrl(const QUrl &url) { return {QString("file://%1").arg(url.toEncoded())}; }
+
+QUrl LSPUri::toQUrl() const { return QUrl::fromPercentEncoding(uri.mid(7).toUtf8()); }
+
 QJsonObject LSPTextDocument::toJson() const {
     static QMap<Language, QString> languageMap{
             {Language::C, "c"}, {Language::CPP, "cpp"}, {Language::PYTHON, "python"}};
 
     QJsonObject obj;
-    // FIXME: this is linux only...?
-    obj["uri"] = QString("file://%1").arg(url.toEncoded());
+    obj["uri"] = uri.uri;
     obj["version"] = version;
     obj["languageId"] = languageMap.value(language, "");
     if (text.has_value()) {
@@ -21,6 +26,16 @@ QJsonObject LSPTextDocument::toJson() const {
 
 std::pair<QString, QJsonValue> LSPTextDocument::toEntry() const {
     return {"textDocument", toJson()};
+}
+
+void LSPPosition::readJson(QJsonObject json) {
+    line = json["line"].toInt();
+    character = json["character"].toInt();
+}
+
+void LSPRange::readJson(QJsonObject json) {
+    start.readJson(json["start"].toObject());
+    end.readJson(json["end"].toObject());
 }
 
 QJsonObject LSPPosition::toJson() const { return {{"line", line}, {"character", character}}; }
@@ -46,7 +61,36 @@ void CompletionResponse::parseJson(const QJsonObject &response) {
     }
 }
 
+void DefinitionResponse::parseJson(const QJsonObject &response) {
+    items.clear();
+    if (!response.contains("result")) {
+        return;
+    }
+    // qDebug() << response;
+    const auto &jsonItems = response["result"].toArray();
+    for (auto jsonItem: jsonItems) {
+        auto obj = jsonItem.toObject();
+        LSPUri uri(obj["uri"].toString());
+        auto rangeObj = obj["range"].toObject();
+        LSPRange range{};
+        range.readJson(rangeObj);
+        items.emplace_back(uri, range);
+    }
+}
+
 bool isNotification(LSPRequestMethod method) { return method == DidOpen; }
+
+QString LanguageServer::commentPrefix(Language language) {
+    switch (language) {
+        case Language::C:
+        case Language::CPP:
+            return "//";
+        case Language::PYTHON:
+            return "#";
+        default:
+            return "";
+    }
+}
 
 /* Language Server */
 const QMap<LSPRequestMethod, QString> methodMap = {
@@ -148,6 +192,14 @@ QCoro::Task<CompletionResponse> LanguageServer::completion(const LSPTextDocument
     auto response = co_await waitResponse<CompletionResponse>();
     co_return response;
 }
+
+QCoro::Task<DefinitionResponse> LanguageServer::definition(const LSPTextDocument &document,
+                                                           const LSPPosition &position) const {
+    QJsonObject payload = {document.toEntry(), position.toEntry()};
+    sendRequest(Definition, payload);
+    auto response = co_await waitResponse<DefinitionResponse>();
+    co_return response;
+};
 
 ClangdLanguageServer *ClangdLanguageServer::instance = nullptr;
 

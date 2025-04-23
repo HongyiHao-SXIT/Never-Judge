@@ -25,8 +25,15 @@ enum LSPRequestMethod {
     DocumentSymbol
 };
 
+struct LSPUri {
+    QString uri;
+
+    static LSPUri fromQUrl(const QUrl &url);
+    QUrl toQUrl() const;
+};
+
 struct LSPTextDocument {
-    QUrl url;
+    LSPUri uri;
     Language language;
     std::optional<QString> text = std::nullopt;
     int version = 1;
@@ -39,8 +46,16 @@ struct LSPPosition {
     int line;
     int character;
 
+    void readJson(QJsonObject json);
     QJsonObject toJson() const;
     std::pair<QString, QJsonValue> toEntry() const;
+};
+
+struct LSPRange {
+    LSPPosition start;
+    LSPPosition end;
+
+    void readJson(QJsonObject json);
 };
 
 struct LSPResponse {
@@ -100,23 +115,47 @@ struct CompletionResponse : LSPResponse {
     void parseJson(const QJsonObject &response) override;
 };
 
+struct DefinitionItem {
+    LSPUri uri;
+    LSPRange range;
+};
+
+struct DefinitionResponse : LSPResponse {
+    QList<DefinitionItem> items;
+    void parseJson(const QJsonObject &response) override;
+};
+
 class LanguageServer : public QObject {
     Q_OBJECT
 
 protected:
     mutable QMutex mutex;
     QProcess *process = nullptr;
+    /**
+     * @brief send a request to the server
+     * @param method the method to call
+     * @param payload the payload to send
+     */
     void sendRequest(LSPRequestMethod method, const QJsonObject &payload) const;
+    /**
+     * @brief wait for a response from the server
+     * @tparam R the type of the response
+     * @return the response
+     */
     template<std::derived_from<LSPResponse> R>
     QCoro::Task<R> waitResponse() const;
 
 public:
     virtual QCoro::Task<> start() = 0;
+    static QString commentPrefix(Language language);
+
     QCoro::Task<InitializeResponse> initialize(const QString &rootUri,
                                                const QJsonObject &capabilities) const;
     QCoro::Task<CompletionResponse> completion(const LSPTextDocument &document,
                                                const LSPPosition &position) const;
     QCoro::Task<> didOpen(const LSPTextDocument &document) const;
+    QCoro::Task<DefinitionResponse> definition(const LSPTextDocument &document,
+                                               const LSPPosition &position) const;
     // TODO: support more functions in LSP
 };
 

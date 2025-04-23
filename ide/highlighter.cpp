@@ -1,13 +1,14 @@
 #include "highlighter.h"
 #include <QJsonArray>
 #include <QLibrary>
+#include <qcorotimer.h>
 #include <utility>
 
 #include "../util/file.h"
 
 // TODO: optimize the rule memory use
 Highlighter::Highlighter(const TSLanguage *language, QString langName, QTextDocument *parent) :
-    QSyntaxHighlighter(parent), language(language), langName(std::move(langName)) {
+    QSyntaxHighlighter(parent), language(language), langName(std::move(langName)), parsing(false) {
     parser = ts_parser_new();
     ts_parser_set_language(parser, language);
     queries.clear();
@@ -87,15 +88,20 @@ void Highlighter::setupBracketQuery() {
     bracketCursor = ts_query_cursor_new();
 }
 
-void Highlighter::setCursorPosition(int pos) {
-    if (currentCursorPos != pos) {
-        currentCursorPos = pos;
-        textNotChanged = true;
-        rehighlight();
+void Highlighter::setCursorPosition(int pos, const QTextBlock &block) {
+    currentCursorPos = pos;
+    if (lastBlock.isValid()) {
+        rehighlightBlock(lastBlock);
     }
+    rehighlightBlock(block);
+    lastBlock = block;
 }
 
 void Highlighter::highlightBlock(const QString &text) {
+    QTextCharFormat f;
+    f.setFontWeight(QFont::Normal);
+    setFormat(0, text.length(), f);
+
     for (auto &result: results) {
         int blockPos = currentBlock().position();
         auto blockLen = text.length();
@@ -114,85 +120,86 @@ void Highlighter::highlightBlock(const QString &text) {
         }
     }
     highlightBracketPairs(text);
+    textNotChanged = true;
 }
 
 QTextCharFormat Highlighter::matchFormat(QTextCharFormat format) {
     format.setFontWeight(QFont::Bold);
-    format.setForeground(QColor(0xFF0000));
+    // format.setForeground(QColor(0xFF0000));
     return format;
 }
 
 void Highlighter::highlightBracketPairs(const QString &text) {
-    if (!bracketQuery || !bracketCursor || currentCursorPos == -1)
-        return;
+     if (!bracketQuery || !bracketCursor || currentCursorPos == -1)
+         return;
 
-    int blockPos = currentBlock().position();
-    int cursorPosInBlock = currentCursorPos - blockPos - 1;
-    if (cursorPosInBlock < 0 || cursorPosInBlock >= text.length())
-        return;
+     int blockPos = currentBlock().position();
+     int cursorPosInBlock = currentCursorPos - blockPos - 1;
+     if (cursorPosInBlock < 0 || cursorPosInBlock >= text.length())
+         return;
 
-    QChar cursorChar = text.at(cursorPosInBlock);
-    if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' &&
-        cursorChar != '[' && cursorChar != ']') {
-        return;
-    }
+     QChar cursorChar = text.at(cursorPosInBlock);
+     if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' &&
+         cursorChar != '[' && cursorChar != ']') {
+         return;
+     }
 
-    auto utf8Content = document()->toPlainText().toUtf8();
+     auto utf8Content = document()->toPlainText().toUtf8();
 
-    TSNode root = ts_tree_root_node(tree);
-    ts_query_cursor_exec(bracketCursor, bracketQuery, root);
+     TSNode root = ts_tree_root_node(tree);
+     ts_query_cursor_exec(bracketCursor, bracketQuery, root);
 
-    TSQueryMatch match;
+     TSQueryMatch match;
 
-    while (ts_query_cursor_next_match(bracketCursor, &match)) {
-        uint32_t leftPos = 0, rightPos = 0;
-        bool hasLeft = false, hasRight = false;
+     while (ts_query_cursor_next_match(bracketCursor, &match)) {
+         uint32_t leftPos = 0, rightPos = 0;
+         bool hasLeft = false, hasRight = false;
 
-        for (uint32_t i = 0; i < match.capture_count; ++i) {
-            uint32_t id = match.captures[i].index;
-            TSNode node = match.captures[i].node;
-            uint32_t length = 5;
-            auto name = ts_query_capture_name_for_id(bracketQuery, id, &length);
-            if (!name) {
-                continue;
-            }
-            if (strcmp(name, "leftb") == 0) {
-                leftPos = ts_node_start_byte(node);
-                hasLeft = true;
-            } else if (strcmp(name, "right") == 0) {
-                rightPos = ts_node_start_byte(node);
-                hasRight = true;
-            }
-        }
+         for (uint32_t i = 0; i < match.capture_count; ++i) {
+             uint32_t id = match.captures[i].index;
+             TSNode node = match.captures[i].node;
+             uint32_t length = 5;
+             auto name = ts_query_capture_name_for_id(bracketQuery, id, &length);
+             if (!name) {
+                 continue;
+             }
+             if (strcmp(name, "leftb") == 0) {
+                 leftPos = ts_node_start_byte(node);
+                 hasLeft = true;
+             } else if (strcmp(name, "right") == 0) {
+                 rightPos = ts_node_start_byte(node);
+                 hasRight = true;
+             }
+         }
 
-        if (hasLeft && hasRight) {
-            int leftCharPos = byteToCharPosition(leftPos, utf8Content);
-            int rightCharPos = byteToCharPosition(rightPos, utf8Content);
+         if (hasLeft && hasRight) {
+             int leftCharPos = byteToCharPosition(leftPos, utf8Content);
+             int rightCharPos = byteToCharPosition(rightPos, utf8Content);
 
-            int left = leftCharPos - blockPos;
-            int right = rightCharPos - blockPos;
+             int left = leftCharPos - blockPos;
+             int right = rightCharPos - blockPos;
 
-            if (cursorPosInBlock == left || cursorPosInBlock == right) {
-                // FIXME: Bracket cross lines?
-                // QTextBlock block = currentBlock();
-                // bool thisLine = true;
-                //
-                // while (leftCharPos - block.position() < 0) {
-                //     block = block.previous();
-                //     thisLine = false;
-                // }
-                // block = currentBlock();
-                // while (rightCharPos - block.position() >= block.length()) {
-                //     block = block.next();
-                //     thisLine = false;
-                // }
+             if (cursorPosInBlock == left || cursorPosInBlock == right) {
+                 // FIXME: Bracket cross lines?
+                 // QTextBlock block = currentBlock();
+                 // bool thisLine = true;
+                 //
+                 // while (leftCharPos - block.position() < 0) {
+                 //     block = block.previous();
+                 //     thisLine = false;
+                 // }
+                 // block = currentBlock();
+                 // while (rightCharPos - block.position() >= block.length()) {
+                 //     block = block.next();
+                 //     thisLine = false;
+                 // }
 
-                setFormat(left, 1, matchFormat(format(left)));
-                setFormat(right, 1, matchFormat(format(right)));
-                break;
-            }
-        }
-    }
+                 setFormat(left, 1, matchFormat(format(left)));
+                 setFormat(right, 1, matchFormat(format(right)));
+                 break;
+             }
+         }
+     }
 }
 
 
@@ -278,10 +285,14 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
     }
 }
 
-void Highlighter::parseDocument() {
-    auto utf8Content = document()->toPlainText().toUtf8();
+QCoro::Task<> Highlighter::parseDocument() {
+    if (parsing) {
+        co_return;
+    }
 
+    auto utf8Content = document()->toPlainText().toUtf8();
     // TODO: use old tree here for better performance
+    parsing = true;
     if (tree) {
         ts_tree_delete(tree);
     }
@@ -289,6 +300,9 @@ void Highlighter::parseDocument() {
 
     TSNode root = ts_tree_root_node(tree);
     results.clear();
+
+    int batchSize = 10000;
+    int cnt = 0;
 
     for (auto &[query, cursor, format]: queries) {
         ts_query_cursor_exec(cursor, query, root);
@@ -306,22 +320,44 @@ void Highlighter::parseDocument() {
                 int endPos = byteToCharPosition(endByte, utf8Content);
                 strRanges.emplace_back(startPos, endPos);
             }
+            if (++cnt % batchSize == 0) {
+                co_await QCoro::sleepFor(std::chrono::milliseconds(100));
+            }
         }
-        results.emplace_back(strRanges, std::move(format));
-    }
 
+        results.emplace_back(strRanges, format);
+    }
     rehighlight();
+    parsing = false;
+    co_return;
 }
 
 int Highlighter::byteToCharPosition(uint32_t bytePos, const QByteArray &utf8) {
-    int charPos = 0;
+    static const QByteArray *utf8Ptr = nullptr;
+    static QList<int> byteOffsets = {}; // charPos -> bytePos
 
-    for (int currentByte = 0; charPos < utf8.length() && currentByte < bytePos; charPos++) {
-        QChar c = utf8[charPos];
-        currentByte += c.unicode() <= 0x7F ? 1 : c.unicode() <= 0x7FF ? 2 : c.isSurrogate() ? 4 : 3;
+    if (utf8Ptr != &utf8) {
+        // build cache
+        byteOffsets.clear();
+        for (int byteOffset = 0; byteOffset < utf8.size();) {
+            byteOffsets.append(byteOffset);
+            uchar ch = utf8[byteOffset];
+
+            if (ch < 0x80)
+                byteOffset += 1;
+            else if ((ch & 0xE0) == 0xC0)
+                byteOffset += 2;
+            else if ((ch & 0xF0) == 0xE0)
+                byteOffset += 3;
+            else if ((ch & 0xF8) == 0xF0)
+                byteOffset += 4;
+        }
+        utf8Ptr = &utf8;
     }
 
-    return charPos;
+    // use binary search with complexity O(log n)
+    auto it = std::ranges::upper_bound(byteOffsets, bytePos);
+    return static_cast<int>(it - byteOffsets.begin() - 1);
 }
 
 Highlighter *HighlighterFactory::getHighlighter(Language language, QTextDocument *parent) {

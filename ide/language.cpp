@@ -30,10 +30,10 @@ Language LangFileInfo::language() const {
     if (suffix() == "c") {
         return Language::C;
     }
-    if (suffix() == "cpp") {
+    if (suffix() == "cpp" || suffix() == "h") {
         return Language::CPP;
     }
-    if (suffix() == "py") {
+    if (suffix() == "py" || suffix() == "pyi") {
         return Language::PYTHON;
     }
     if (fileName() == "CMakeLists.txt") {

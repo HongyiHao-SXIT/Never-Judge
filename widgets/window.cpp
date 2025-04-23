@@ -71,6 +71,8 @@ void IDEMainWindow::connectSignals() {
             &FileTreeWidget::setVisible);
     connect(leftNav, &LeftIconNavigateWidget::toggleTerminal, terminal,
             &TerminalWidget::setVisible);
+    connect(rightNav, &RightIconNavigateWidget::loginOJ, ojPreview,
+            &OpenJudgePreviewWidget::loginOJ);
     connect(rightNav, &RightIconNavigateWidget::togglePreview, ojPreview,
             &OpenJudgePreviewWidget::setVisible);
     connect(rightNav, &RightIconNavigateWidget::openSetting, this, &IDEMainWindow::openSettings);
