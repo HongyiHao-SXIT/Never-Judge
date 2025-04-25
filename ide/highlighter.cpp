@@ -69,10 +69,10 @@ Highlighter::~Highlighter() {
 }
 
 void Highlighter::setupBracketQuery() {
-    const char *queryPattern = "(\"(\" @leftb \")\" @right) "
-                               "(\"(\" @leftb \")\" @right) "
-                               "(\"{\" @leftb \"}\" @right) "
-                               "(\"[\" @leftb \"]\" @right)";
+    const char *queryPattern = "(\"(\" @left_ \")\" @right) "
+                               "(\"(\" @left_ \")\" @right) "
+                               "(\"{\" @left_ \"}\" @right) "
+                               "(\"[\" @left_ \"]\" @right)";
 
     uint32_t errorOffset;
     TSQueryError errorType;
@@ -98,9 +98,7 @@ void Highlighter::setCursorPosition(int pos, const QTextBlock &block) {
 }
 
 void Highlighter::highlightBlock(const QString &text) {
-    QTextCharFormat f;
-    f.setFontWeight(QFont::Normal);
-    setFormat(0, text.length(), f);
+    setFormat(0, text.length(), QTextCharFormat()); // reset format
 
     for (auto &result: results) {
         int blockPos = currentBlock().position();
@@ -125,81 +123,81 @@ void Highlighter::highlightBlock(const QString &text) {
 
 QTextCharFormat Highlighter::matchFormat(QTextCharFormat format) {
     format.setFontWeight(QFont::Bold);
-    // format.setForeground(QColor(0xFF0000));
+    format.setForeground(QColor(0xFF0000));
     return format;
 }
 
 void Highlighter::highlightBracketPairs(const QString &text) {
-     if (!bracketQuery || !bracketCursor || currentCursorPos == -1)
-         return;
+    if (!bracketQuery || !bracketCursor || currentCursorPos == -1)
+        return;
 
-     int blockPos = currentBlock().position();
-     int cursorPosInBlock = currentCursorPos - blockPos - 1;
-     if (cursorPosInBlock < 0 || cursorPosInBlock >= text.length())
-         return;
+    int blockPos = currentBlock().position();
+    int cursorPosInBlock = currentCursorPos - blockPos - 1;
+    if (cursorPosInBlock < 0 || cursorPosInBlock >= text.length())
+        return;
 
-     QChar cursorChar = text.at(cursorPosInBlock);
-     if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' &&
-         cursorChar != '[' && cursorChar != ']') {
-         return;
-     }
+    QChar cursorChar = text.at(cursorPosInBlock);
+    if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' &&
+        cursorChar != '[' && cursorChar != ']') {
+        return;
+    }
 
-     auto utf8Content = document()->toPlainText().toUtf8();
+    auto utf8Content = document()->toPlainText().toUtf8();
 
-     TSNode root = ts_tree_root_node(tree);
-     ts_query_cursor_exec(bracketCursor, bracketQuery, root);
+    TSNode root = ts_tree_root_node(tree);
+    ts_query_cursor_exec(bracketCursor, bracketQuery, root);
 
-     TSQueryMatch match;
+    TSQueryMatch match;
 
-     while (ts_query_cursor_next_match(bracketCursor, &match)) {
-         uint32_t leftPos = 0, rightPos = 0;
-         bool hasLeft = false, hasRight = false;
+    while (ts_query_cursor_next_match(bracketCursor, &match)) {
+        uint32_t leftPos = 0, rightPos = 0;
+        bool hasLeft = false, hasRight = false;
 
-         for (uint32_t i = 0; i < match.capture_count; ++i) {
-             uint32_t id = match.captures[i].index;
-             TSNode node = match.captures[i].node;
-             uint32_t length = 5;
-             auto name = ts_query_capture_name_for_id(bracketQuery, id, &length);
-             if (!name) {
-                 continue;
-             }
-             if (strcmp(name, "leftb") == 0) {
-                 leftPos = ts_node_start_byte(node);
-                 hasLeft = true;
-             } else if (strcmp(name, "right") == 0) {
-                 rightPos = ts_node_start_byte(node);
-                 hasRight = true;
-             }
-         }
+        for (uint32_t i = 0; i < match.capture_count; ++i) {
+            uint32_t id = match.captures[i].index;
+            TSNode node = match.captures[i].node;
+            uint32_t length = 5;
+            auto name = ts_query_capture_name_for_id(bracketQuery, id, &length);
+            if (!name) {
+                continue;
+            }
+            if (strcmp(name, "left_") == 0) {
+                leftPos = ts_node_start_byte(node);
+                hasLeft = true;
+            } else if (strcmp(name, "right") == 0) {
+                rightPos = ts_node_start_byte(node);
+                hasRight = true;
+            }
+        }
 
-         if (hasLeft && hasRight) {
-             int leftCharPos = byteToCharPosition(leftPos, utf8Content);
-             int rightCharPos = byteToCharPosition(rightPos, utf8Content);
+        if (hasLeft && hasRight) {
+            int leftCharPos = byteToCharPosition(leftPos, utf8Content);
+            int rightCharPos = byteToCharPosition(rightPos, utf8Content);
 
-             int left = leftCharPos - blockPos;
-             int right = rightCharPos - blockPos;
+            int left = leftCharPos - blockPos;
+            int right = rightCharPos - blockPos;
 
-             if (cursorPosInBlock == left || cursorPosInBlock == right) {
-                 // FIXME: Bracket cross lines?
-                 // QTextBlock block = currentBlock();
-                 // bool thisLine = true;
-                 //
-                 // while (leftCharPos - block.position() < 0) {
-                 //     block = block.previous();
-                 //     thisLine = false;
-                 // }
-                 // block = currentBlock();
-                 // while (rightCharPos - block.position() >= block.length()) {
-                 //     block = block.next();
-                 //     thisLine = false;
-                 // }
+            if (cursorPosInBlock == left || cursorPosInBlock == right) {
+                // FIXME: Bracket cross lines?
+                // QTextBlock block = currentBlock();
+                // bool thisLine = true;
+                //
+                // while (leftCharPos - block.position() < 0) {
+                //     block = block.previous();
+                //     thisLine = false;
+                // }
+                // block = currentBlock();
+                // while (rightCharPos - block.position() >= block.length()) {
+                //     block = block.next();
+                //     thisLine = false;
+                // }
 
-                 setFormat(left, 1, matchFormat(format(left)));
-                 setFormat(right, 1, matchFormat(format(right)));
-                 break;
-             }
-         }
-     }
+                setFormat(left, 1, matchFormat(format(left)));
+                setFormat(right, 1, matchFormat(format(right)));
+                break;
+            }
+        }
+    }
 }
 
 
@@ -213,7 +211,7 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
 
     QList<HighlightRule> rules;
 
-    // read highlight rules from json
+    // read highlight rules from JSON
     for (const auto &array: jsonRules.toArray()) {
         auto obj = array.toObject();
         if (!obj.contains("pattern")) {

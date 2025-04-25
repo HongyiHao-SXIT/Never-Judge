@@ -134,6 +134,7 @@ class CodeTabWidget : public QTabWidget {
     Q_OBJECT
 
     Project *project = nullptr;
+    QMutex tabMutex;
 
     void setup();
     /** Add a welcome widget */

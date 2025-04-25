@@ -262,6 +262,7 @@ QCoro::Task<> CodeEditWidget::onSetupFinished() {
     if (!response.ok) {
         qWarning() << "Server of language" << langName(file.language()) << "initialized failed";
     }
+    co_await server->didOpen({LSPUri::fromQUrl(file.filePath()), file.language(), toPlainText()});
     co_return;
 }
 
@@ -682,7 +683,11 @@ CodeEditWidget *CodeTabWidget::addCodeEdit(const QString &filePath) {
     }
 
     auto *edit = new CodeEditWidget(filePath, this);
-    int index = addTab(edit, edit->getTabText());
+    int index;
+    {
+        QMutexLocker locker(&tabMutex);
+        index = addTab(edit, edit->getTabText());
+    }
     connect(edit, &CodeEditWidget::modify, this, [this, index] { widgetModified(index); });
     connect(edit, &CodeEditWidget::jumpTo, this, &CodeTabWidget::jumpTo);
     setCurrentIndex(index);
@@ -723,6 +728,7 @@ void CodeTabWidget::removeCodeEditRequested(int index) {
 }
 
 void CodeTabWidget::widgetModified(int index) {
+    QMutexLocker locker(&tabMutex);
     // add a * after the title
     setTabText(index, editAt(index)->getTabText() + " *");
 }
@@ -752,6 +758,7 @@ void CodeTabWidget::save() {
     if (auto *edit = curEdit()) {
         edit->saveFile();
         // recover the tab title
+        QMutexLocker locker(&tabMutex);
         setTabText(currentIndex(), edit->getTabText());
     }
 }
