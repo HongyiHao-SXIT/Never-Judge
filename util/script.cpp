@@ -16,7 +16,7 @@ QCoro::Task<ScriptResult> runPythonScript(QFile &script, QStringList args) {
     QString content = in.readAll();
 
     auto process = QProcess();
-    co_await qCoro(process).start("python3", QStringList() << "-c" << content << args);
+    co_await qCoro(process).start("python", QStringList() << "-c" << content << args);
     if (!co_await qCoro(process).waitForStarted()) {
         qWarning() << "Failed to start script: " << process.errorString();
         co_return ScriptResult::fail();

@@ -620,7 +620,7 @@ void CodeEditWidget::cursorMoveTo(int startLine, int startChar, int endLine, int
 QCoro::Task<> CodeEditWidget::onTextChanged() {
     // This is a hack!
     // If highlighter has not changed the text, we should not emit modify signal
-    if (highlighter->textNotChanged) {
+    if (highlighter && highlighter->textNotChanged) {
         highlighter->textNotChanged = false;
         co_return;
     }
