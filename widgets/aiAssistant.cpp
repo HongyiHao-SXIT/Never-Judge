@@ -12,7 +12,7 @@
 #include "../ide/aiChat.h"
 #include "../widgets/code.h"
 
-AIAssistantWidget::AIAssistantWidget(QWidget *parent) : QDockWidget(tr("AI 刷题助手"), parent) {
+AIAssistantWidget::AIAssistantWidget(CodeTabWidget* codeTab, QWidget *parent) : QDockWidget(tr("AI 刷题助手"), parent) {
     setupUI();
     connectSignals();
     
@@ -21,6 +21,8 @@ AIAssistantWidget::AIAssistantWidget(QWidget *parent) : QDockWidget(tr("AI 刷�
         QMessageBox::information(this, tr("API 密钥未设置"), 
             tr("请先设置 DeepSeek API 密钥才能使用 AI 助手功能。"));
     }
+    
+    m_codeTab = codeTab;
 }
 
 void AIAssistantWidget::setupUI() {
@@ -126,6 +128,20 @@ void AIAssistantWidget::connectSignals() {
     });
 }
 
+QString AIAssistantWidget::getCurrentCode() const {
+    if (m_codeTab) {
+        auto currentEdit = m_codeTab->curEdit();
+        if (currentEdit) {
+            return currentEdit->toPlainText();
+        } else {
+            qWarning() << "AIAssistantWidget: No active code editor found.";
+        }
+    } else {
+        qWarning() << "AIAssistantWidget: CodeTabWidget pointer is null.";
+    }
+    return QString(); // Return empty string if code cannot be retrieved
+}
+
 void AIAssistantWidget::displayMessage(const AIMessage &message) {
     QString text = message.content;
     bool isUser = (message.type == AIMessageType::USER);
@@ -173,6 +189,8 @@ void AIAssistantWidget::setProblemInfo(
     const QString &sampleInput,
     const QString &sampleOutput
 ) {
+    AIChatManager::getInstance().setProblemTitle(title);
+    AIChatManager::getInstance().setProblemDescription(description);
     currentTitle = title;
     currentDescription = description;
     currentInputDesc = inputDesc;
@@ -213,6 +231,13 @@ void AIAssistantWidget::onClearClicked() {
 }
 
 void AIAssistantWidget::onAnalyzeClicked() {
+    QString userCode = getCurrentCode();
+    if (userCode.isEmpty()) {
+        QMessageBox::warning(this, tr("缺少代码"), 
+            tr("请先在输入框中粘贴需要分析的代码。"));
+        return;
+    }
+    
     // 检查是否有题目信息
     if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
         QMessageBox::warning(this, tr("缺少题目信息"), 
@@ -221,14 +246,8 @@ void AIAssistantWidget::onAnalyzeClicked() {
     }
     
     // 生成题目解析提示词
-    QString prompt = AIChatManager::getInstance().generateProblemAnalysisPrompt(
-        currentTitle,
-        currentDescription,
-        currentInputDesc,
-        currentOutputDesc,
-        currentSampleInput,
-        currentSampleOutput
-    );
+    QString prompt = QString("请分析以下代码，并指出可能存在的问题。\n题目：%1\n描述：%2\n代码：\n```cpp\n%3\n```")
+                         .arg(currentTitle, currentDescription, userCode);
     
     // 添加用户消息
     AIChatManager::getInstance().addUserMessage("请分析这道题目: " + currentTitle);
@@ -249,14 +268,8 @@ void AIAssistantWidget::onCodeClicked() {
     }
     
     // 生成示例代码提示词
-    QString prompt = AIChatManager::getInstance().generateCodeExamplePrompt(
-        currentTitle,
-        currentDescription,
-        currentInputDesc,
-        currentOutputDesc,
-        currentSampleInput,
-        currentSampleOutput
-    );
+    QString prompt = QString("请为以下题目生成示例代码。\n题目：%1\n描述：%2")
+                         .arg(currentTitle, currentDescription);
     
     // 添加用户消息
     AIChatManager::getInstance().addUserMessage("请为这道题目生成示例代码: " + currentTitle);
@@ -269,22 +282,23 @@ void AIAssistantWidget::onCodeClicked() {
 }
 
 void AIAssistantWidget::onDebugClicked() {
-    // 获取当前编辑器中的代码
-    QString code = userInput->toPlainText();
-    if (code.isEmpty()) {
+    QString userCode = getCurrentCode();
+    if (userCode.isEmpty()) {
         QMessageBox::warning(this, tr("缺少代码"), 
             tr("请先在输入框中粘贴需要调试的代码。"));
         return;
     }
     
+    // 检查是否有题目信息
+    if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
+        QMessageBox::warning(this, tr("缺少题目信息"), 
+            tr("请先打开一个题目或手动输入题目信息。"));
+        return;
+    }
+    
     // 生成调试提示词
-    QString prompt = AIChatManager::getInstance().generateDebugPrompt(
-        currentTitle,
-        currentDescription,
-        currentSampleInput,
-        currentSampleOutput,
-        code
-    );
+    QString prompt = QString("请帮助调试以下代码，找出潜在的错误。\n题目：%1\n描述：%2\n代码：\n```cpp\n%3\n```")
+                         .arg(currentTitle, currentDescription, userCode);
     
     // 添加用户消息
     AIChatManager::getInstance().addUserMessage("请帮我调试这段代码");

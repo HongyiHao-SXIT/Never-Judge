@@ -709,3 +709,749 @@ make -j$(nproc)
 
 
 rm -rf build && mkdir build && cd build && cmake .. && make
+
+
+
+
+
+
+
+# gemini的过长回复
+
+
+
+Alright, `onCodeClicked` is updated.
+
+Let's proceed with refactoring `onDebugClicked` to be asynchronous.
+
+**Proposal for `widgets/aiAssistant.cpp`:**
+
+```
+cppCopyInsert{{ ... }}
+// Make onDebugClicked a QCoro::Task
+QCoro::Task<> AIAssistantWidget::onDebugClicked() {
+    QString codeToDebug = currentUserCode; // Use the member variable
+    if (codeToDebug.isEmpty()) {
+        QMessageBox::warning(this, tr("缺少代码"),
+            tr("未检测到当前编辑器中的代码。请确保编辑器有打开的文件，并且焦点在编辑器上。"));
+        co_return;
+    }
+
+     if (currentTitle.isEmpty()) {
+         QMessageBox::warning(this, tr("缺少题目信息"),
+             tr("请先通过预览打开一个题目以提供调试上下文。"));
+         co_return;
+     }
+
+    // Construct user intent message
+    QString userIntent = QString("请帮我调试以下关于题目 '%1' 的代码：\n```cpp\n%2\n```\n请重点关注可能的逻辑错误、边界条件、与题目要求不符之处以及潜在的性能问题。给出具体的修改建议或修正后的代码片段（使用 markdown cpp 代码块）。")
+                           .arg(currentTitle).arg(codeToDebug);
+
+    // Generate and add system prompt
+    QString systemPrompt = aiChatManager->generateDebugPrompt(
+        currentTitle, currentDescription, currentSampleInput,
+        currentSampleOutput, codeToDebug); // Pass code to prompt generator
+     aiChatManager->addSystemMessage(systemPrompt);
+
+    // Add user message
+    aiChatManager->addUserMessage(userIntent);
+    // Display a summary of the user's request
+    displayMarkdown(QString("正在请求调试关于题目 '%1' 的代码...").arg(currentTitle), true);
+
+    // Get history and call API
+    QJsonArray historyJson = aiChatManager->getMessagesJson();
+    setProgressVisible(true);
+    QString responseText = co_await aiClient->sendRequest(historyJson);
+    setProgressVisible(false);
+
+    // Handle response
+    if (!responseText.isEmpty()) {
+        aiChatManager->addAssistantMessage(responseText);
+        displayMarkdown(responseText, false);
+        // Store debugging suggestions, potentially extract code if AI provides corrected snippets
+        generatedCode = extractCodeFromMarkdown(responseText);
+        insertCodeButton->setVisible(!generatedCode.isEmpty());
+    } else {
+        displayMarkdown("*代码调试请求失败。*", false);
+        insertCodeButton->setVisible(false);
+    }
+    // Scroll to bottom
+     conversationView->verticalScrollBar()->setValue(conversationView->verticalScrollBar()->maximum());
+}
+
+{{ ... }}
+
+```
+
+
+
+Proposed edit:
+
+aiAssistant.cpp
+
++46-24 498
+
+Apply
+
+```
+{{ ... }}    conversationView->verticalScrollBar()->setValue(conversationView->verticalScrollBar()->maximum()); } // Make onDebugClicked a QCoro::Task QCoro::Task<> AIAssistantWidget::onDebugClicked() {    QString codeToDebug = currentUserCode; // Use the member variable    if (codeToDebug.isEmpty()) {        QMessageBox::warning(this, tr("缺少代码"),            tr("未检测到当前编辑器中的代码。请确保编辑器有打开的文件，并且焦点在编辑器上。"));        co_return;    }      if (currentTitle.isEmpty()) {         QMessageBox::warning(this, tr("缺少题目信息"),             tr("请先通过预览打开一个题目以提供调试上下文。"));         co_return;     }     // Construct user intent message    QString userIntent = QString("请帮我调试以下关于题目 '%1' 的代码：\n```cpp\n%2\n```\n请重点关注可能的逻辑错误、边界条件、与题目要求不符之处以及潜在的性能问题。给出具体的修改建议或修正后的代码片段（使用 markdown cpp 代码块）。")                           .arg(currentTitle).arg(codeToDebug);     // Generate and add system prompt    QString systemPrompt = aiChatManager->generateDebugPrompt(        currentTitle, currentDescription, currentSampleInput,        currentSampleOutput, codeToDebug); // Pass code to prompt generator     aiChatManager->addSystemMessage(systemPrompt);     // Add user message    aiChatManager->addUserMessage(userIntent);    // Display a summary of the user's request    displayMarkdown(QString("正在请求调试关于题目 '%1' 的代码...").arg(currentTitle), true);     // Get history and call API    QJsonArray historyJson = aiChatManager->getMessagesJson();    setProgressVisible(true);    QString responseText = co_await aiClient->sendRequest(historyJson);    setProgressVisible(false);     // Handle response    if (!responseText.isEmpty()) {        aiChatManager->addAssistantMessage(responseText);        displayMarkdown(responseText, false);        // Store debugging suggestions, potentially extract code if AI provides corrected snippets        generatedCode = extractCodeFromMarkdown(responseText);        insertCodeButton->setVisible(!generatedCode.isEmpty());    } else {        displayMarkdown("*代码调试请求失败。*", false);        insertCodeButton->setVisible(false);    }    // Scroll to bottom     conversationView->verticalScrollBar()->setValue(conversationView->verticalScrollBar()->maximum()); } {{ ... }}
+```
+
+Okay, the debugging function 
+
+```
+onDebugClicked
+```
+
+ is updated.
+
+
+
+Finally, let's update the last two button click handlers, 
+
+```
+onInsertCodeClicked
+```
+
+ and 
+
+```
+onSetApiKeyClicked
+```
+
+, and ensure the old, now unused, slots (
+
+```
+onRequestCompleted
+```
+
+ and 
+
+```
+onMessageAdded
+```
+
+) are removed.
+
+
+
+**Proposal for `widgets/aiAssistant.cpp`:**
+
+```
+cppCopyInsert{{ ... }}
+// Update onInsertCodeClicked
+void AIAssistantWidget::onInsertCodeClicked() {
+    if (generatedCode.isEmpty()) {
+        QMessageBox::information(this, tr("无代码可插入"), tr("请先让 AI 生成代码。最近一次 AI 的回答中未找到可插入的代码块。"));
+        return;
+    }
+
+    // Find the main window more reliably
+    QMainWindow *mainWindow = nullptr;
+    const QList<QWidget*> topLevelWidgets = QApplication::topLevelWidgets();
+    for(QWidget *widget : topLevelWidgets) {
+        mainWindow = qobject_cast<QMainWindow*>(widget);
+        if (mainWindow && mainWindow->inherits(\"Window\")) { // Check if it's the main Window class
+             break; // Found the main application window
+        }
+        mainWindow = nullptr; // Reset if it wasn't the right type
+    }
+
+
+    if (!mainWindow) {
+        qWarning() << "Could not find main window (Window class) to insert code.";
+         QMessageBox::critical(this, tr("错误"), tr("无法找到主窗口以插入代码。"));
+        return;
+    }
+
+    // Find the CodeTabWidget within the main window
+    CodeTabWidget *codeTabWidget = mainWindow->findChild<CodeTabWidget *>();
+    if (!codeTabWidget) {
+        qWarning() << "Could not find CodeTabWidget in main window.";
+        QMessageBox::critical(this, tr("错误"), tr("无法在主窗口中找到代码编辑器组件。"));
+        return;
+    }
+
+    // Get the current editor and insert code
+    CodeEditWidget *currentEditor = codeTabWidget->currentEditor();
+    if (currentEditor) {
+        currentEditor->insertPlainText(generatedCode); // Use insertPlainText
+        QMessageBox::information(this, tr("插入成功"), tr("代码已插入到当前编辑器光标位置。"));
+        // Consider clearing generatedCode and hiding the button after successful insertion
+        // generatedCode.clear();
+        // insertCodeButton->setVisible(false);
+    } else {
+        QMessageBox::warning(this, tr("无活动编辑器"), tr("请先打开一个文件或确保编辑器有焦点。"));
+    }
+}
+
+// Update onSetApiKeyClicked
+void AIAssistantWidget::onSetApiKeyClicked() {
+    bool ok;
+    // Pre-fill the input dialog if a key exists (show placeholder)
+    QString existingKeyPlaceholder = aiClient->hasApiKey() ? "********" : ""; // Use member aiClient
+    QString apiKey = QInputDialog::getText(this, tr("设置 API 密钥"),
+        tr("请输入 DeepSeek API 密钥:"), QLineEdit::Normal,
+        existingKeyPlaceholder, &ok);
+
+    if (ok) { // User clicked OK
+        // Update the key regardless of whether it's empty or not
+        // This allows the user to clear the key by entering an empty string
+        aiClient->setApiKey(apiKey); // Use the member instance
+
+        if (!apiKey.isEmpty()) {
+            QMessageBox::information(this, tr("API 密钥已设置"),
+                tr("DeepSeek API 密钥已成功设置或更新。"));
+        } else {
+             // Provide feedback only if a key was previously set and is now cleared
+             if (!existingKeyPlaceholder.isEmpty()) {
+                 QMessageBox::information(this, tr("API 密钥已清除"),
+                                      tr("DeepSeek API 密钥已被清除。"));
+             }
+        }
+    }
+    // No action needed if user cancelled (ok is false)
+}
+
+// Remove the old slot implementations as they are no longer connected or needed
+// void AIAssistantWidget::onRequestCompleted(bool success, const QString &response) { /* ... removed ... */ }
+// void AIAssistantWidget::onMessageAdded(const AIMessage &message) { /* ... removed ... */ }
+
+{{ ... }} // Ensure there's no trailing code after this comment in the final file
+```
+
+
+
+Proposed edit:
+
+aiAssistant.cpp
+
++64-71 451
+
+Apply
+
+```
+{{ ... }}     conversationView->verticalScrollBar()->setValue(conversationView->verticalScrollBar()->maximum()); } // Update onInsertCodeClicked void AIAssistantWidget::onInsertCodeClicked() {    if (generatedCode.isEmpty()) {        QMessageBox::information(this, tr("无代码可插入"), tr("请先让 AI 生成代码。最近一次 AI 的回答中未找到可插入的代码块。"));        return;    }     // Find the main window more reliably    QMainWindow *mainWindow = nullptr;    const QList<QWidget*> topLevelWidgets = QApplication::topLevelWidgets();    for(QWidget *widget : topLevelWidgets) {        mainWindow = qobject_cast<QMainWindow*>(widget);        if (mainWindow && mainWindow->inherits("Window")) { // Check if it's the main Window class             break; // Found the main application window        }        mainWindow = nullptr; // Reset if it wasn't the right type    }     if (!mainWindow) {        qWarning() << "Could not find main window (Window class) to insert code.";         QMessageBox::critical(this, tr("错误"), tr("无法找到主窗口以插入代码。"));        return;    }     // Find the CodeTabWidget within the main window    CodeTabWidget *codeTabWidget = mainWindow->findChild<CodeTabWidget *>();    if (!codeTabWidget) {        qWarning() << "Could not find CodeTabWidget in main window.";        QMessageBox::critical(this, tr("错误"), tr("无法在主窗口中找到代码编辑器组件。"));        return;    }     // Get the current editor and insert code    CodeEditWidget *currentEditor = codeTabWidget->currentEditor();    if (currentEditor) {        currentEditor->insertPlainText(generatedCode); // Use insertPlainText        QMessageBox::information(this, tr("插入成功"), tr("代码已插入到当前编辑器光标位置。"));        // Consider clearing generatedCode and hiding the button after successful insertion        // generatedCode.clear();        // insertCodeButton->setVisible(false);    } else {        QMessageBox::warning(this, tr("无活动编辑器"), tr("请先打开一个文件或确保编辑器有焦点。"));    } } // Update onSetApiKeyClicked void AIAssistantWidget::onSetApiKeyClicked() {    bool ok;    // Pre-fill the input dialog if a key exists (show placeholder)    QString existingKeyPlaceholder = aiClient->hasApiKey() ? "********" : ""; // Use member aiClient    QString apiKey = QInputDialog::getText(this, tr("设置 API 密钥"),        tr("请输入 DeepSeek API 密钥:"), QLineEdit::Normal,        existingKeyPlaceholder, &ok);     if (ok) { // User clicked OK        // Update the key regardless of whether it's empty or not        // This allows the user to clear the key by entering an empty string        aiClient->setApiKey(apiKey); // Use the member instance         if (!apiKey.isEmpty()) {            QMessageBox::information(this, tr("API 密钥已设置"),                tr("DeepSeek API 密钥已成功设置或更新。"));        } else {             // Provide feedback only if a key was previously set and is now cleared             if (!existingKeyPlaceholder.isEmpty()) {                 QMessageBox::information(this, tr("API 密钥已清除"),                                      tr("DeepSeek API 密钥已被清除。"));             }        }    }    // No action needed if user cancelled (ok is false) } // Remove the old slot implementations as they are no longer connected or needed // void AIAssistantWidget::onRequestCompleted(bool success, const QString &response) { /* ... removed ... */ } // void AIAssistantWidget::onMessageAdded(const AIMessage &message) { /* ... removed ... */ }  // The rest of the file should contain only necessary member variables and potentially // private helper functions if needed. // Make sure the old slot implementations are fully deleted from the file.
+```
+
+Excellent, all the necessary changes have been applied to 
+
+```
+widgets/aiAssistant.cpp
+```
+
+.
+
+
+
+Now, we need to update the corresponding header file, 
+
+```
+widgets/aiAssistant.h
+```
+
+, to match the changes we made in the implementation file (
+
+```
+.cpp
+```
+
+). This involves:
+
+
+
+1. Including the
+
+    
+
+   ```
+   QCoro/Task
+   ```
+
+    
+
+   header.
+
+2. Changing the return type of the refactored slot methods (
+
+   ```
+   onSendClicked
+   ```
+
+   ,
+
+    
+
+   ```
+   onAnalyzeClicked
+   ```
+
+   ,
+
+    
+
+   ```
+   onCodeClicked
+   ```
+
+   ,
+
+    
+
+   ```
+   onDebugClicked
+   ```
+
+   ) to
+
+    
+
+   ```
+   QCoro::Task<>
+   ```
+
+   .
+
+3. Removing the declarations for the old slots (
+
+   ```
+   onRequestCompleted
+   ```
+
+   ,
+
+    
+
+   ```
+   onMessageAdded
+   ```
+
+   ).
+
+4. Ensuring member variables for
+
+    
+
+   ```
+   AIClient*
+   ```
+
+   ,
+
+    
+
+   ```
+   AIChatManager*
+   ```
+
+   ,
+
+    
+
+   ```
+   currentUserCode
+   ```
+
+   , and
+
+    
+
+   ```
+   generatedCode
+   ```
+
+    
+
+   are declared.
+
+5. Adding the declaration for
+
+    
+
+   ```
+   extractCodeFromMarkdown
+   ```
+
+   .
+
+**Proposal for `widgets/aiAssistant.h`:**
+
+```
+cppCopyInsert#ifndef AIASSISTANTWIDGET_H
+#define AIASSISTANTWIDGET_H
+
+#include <QWidget> // Changed from QDockWidget if it was previously a dock
+#include <QString>
+#include <QCoro/Task> // Include QCoro Task header
+
+// Forward declarations
+class QPushButton;
+class QTextBrowser;
+class QPlainTextEdit; // Changed from QTextEdit if needed
+class QProgressBar;
+class AIClient;      // Forward declare AIClient
+class AIChatManager; // Forward declare AIChatManager
+class CodeTabWidget; // Forward declare CodeTabWidget
+
+class AIAssistantWidget : public QWidget { // Inherit from QWidget
+    Q_OBJECT
+
+public:
+    explicit AIAssistantWidget(QWidget *parent = nullptr);
+    ~AIAssistantWidget() override;
+
+    // Methods to interact with the assistant from outside
+    void setProblemInfo(const QString &title, const QString &description,
+                         const QString &inputDesc, const QString &outputDesc,
+                         const QString &sampleInput, const QString &sampleOutput);
+    void setUserCode(const QString &code); // To receive code from the editor
+
+private slots:
+    // Declare slots as QCoro::Task<>
+    QCoro::Task<> onSendClicked();
+    QCoro::Task<> onAnalyzeClicked();
+    QCoro::Task<> onCodeClicked();
+    QCoro::Task<> onDebugClicked();
+
+    // Regular slots
+    void onClearClicked();
+    void onInsertCodeClicked();
+    void onSetApiKeyClicked();
+
+    // --- REMOVE OLD SLOTS ---
+    // void onRequestCompleted(bool success, const QString &response); // Removed
+    // void onMessageAdded(const AIMessage &message);                // Removed
+    // ------------------------
+
+private:
+    void setupUI();
+    void connectSignals();
+    void displayMarkdown(const QString &text, bool isUser); // Updated helper
+    void setProgressVisible(bool visible);
+    QString extractCodeFromMarkdown(const QString &markdown); // Added helper declaration
+
+    // UI Elements
+    QTextBrowser *conversationView = nullptr;
+    QPlainTextEdit *userInput = nullptr; // Or QTextEdit if you kept that
+    QPushButton *sendButton = nullptr;
+    QPushButton *clearButton = nullptr;
+    QPushButton *analyzeButton = nullptr;
+    QPushButton *codeButton = nullptr;
+    QPushButton *debugButton = nullptr;
+    QPushButton *insertCodeButton = nullptr;
+    QPushButton *setApiKeyButton = nullptr;
+    QProgressBar *progressBar = nullptr;
+
+    // Member Variables
+    AIClient *aiClient = nullptr;           // Pointer to AIClient instance
+    AIChatManager *aiChatManager = nullptr; // Pointer to AIChatManager instance
+    QString currentTitle;
+    QString currentDescription;
+    QString currentInputDesc;
+    QString currentOutputDesc;
+    QString currentSampleInput;
+    QString currentSampleOutput;
+    QString currentUserCode; // Store code from editor for debugging
+    QString generatedCode;   // Store the last generated code block for insertion
+};
+
+#endif // AIASSISTANTWIDGET_H
+```
+
+Let me know when you're ready to apply these changes to 
+
+```
+widgets/aiAssistant.h
+```
+
+.
+
+
+
+
+
+Proposed edit:
+
+aiAssistant.h
+
++52-179 18
+
+Apply
+
+#ifndef AIASSISTANTWIDGET_H
+#define AIASSISTANTWIDGET_H
+
+#include <QWidget> // Changed from QDockWidget if it was previously a dock
+#include <QString>
+#include <QCoro/Task> // Include QCoro Task header
+
+// Forward declarations
+class QPushButton;
+class QTextBrowser;
+class QPlainTextEdit; // Changed from QTextEdit if needed
+class QProgressBar;
+class AIClient;      // Forward declare AIClient
+class AIChatManager; // Forward declare AIChatManager
+class CodeTabWidget; // Forward declare CodeTabWidget
+struct AIMessage;    // Forward declare AIMessage if still needed (likely not)
+
+class AIAssistantWidget : public QWidget { // Inherit from QWidget if changed, else QDockWidget
+    Q_OBJECT
+
+public:
+    explicit AIAssistantWidget(QWidget *parent = nullptr);
+    ~AIAssistantWidget() override;
+
+​    // Methods to interact with the assistant from outside
+​    void setProblemInfo(const QString &title, const QString &description,
+​                         const QString &inputDesc, const QString &outputDesc,
+​                         const QString &sampleInput, const QString &sampleOutput);
+​    void setUserCode(const QString &code); // To receive code from the editor
+
+private slots:
+    // Declare slots as QCoro::Task<>
+    QCoro::Task<> onSendClicked();
+    QCoro::Task<> onAnalyzeClicked();
+    QCoro::Task<> onCodeClicked();
+    QCoro::Task<> onDebugClicked();
+
+​    // Regular slots
+​    void onClearClicked();
+​    void onInsertCodeClicked();
+​    void onSetApiKeyClicked();
+
+​    // --- REMOVE OLD SLOTS ---
+​    // void onRequestCompleted(bool success, const QString &response); // Removed
+​    // void onMessageAdded(const AIMessage &message);                // Removed
+​    // ------------------------
+
+private:
+    void setupUI();
+    void connectSignals();
+    void displayMarkdown(const QString &text, bool isUser); // Updated helper
+    void setProgressVisible(bool visible);
+    QString extractCodeFromMarkdown(const QString &markdown); // Added helper declaration
+
+​    // UI Elements
+​    QTextBrowser *conversationView = nullptr;
+​    QPlainTextEdit *userInput = nullptr; // Or QTextEdit if you kept that
+​    QPushButton *sendButton = nullptr;
+​    QPushButton *clearButton = nullptr;
+​    QPushButton *analyzeButton = nullptr;
+​    QPushButton *codeButton = nullptr;
+​    QPushButton *debugButton = nullptr;
+​    QPushButton *insertCodeButton = nullptr;
+​    QPushButton *setApiKeyButton = nullptr;
+​    QProgressBar *progressBar = nullptr;
+​    // Remove layouts if they are only used in setupUI
+​    // Remove mainWidget if AIAssistantWidget is now the main widget
+​    // Remove apiKeyLabel if not used
+
+​    // Member Variables
+​    AIClient *aiClient = nullptr;           // Pointer to AIClient instance
+​    AIChatManager *aiChatManager = nullptr; // Pointer to AIChatManager instance
+​    QString currentTitle;
+​    QString currentDescription;
+​    QString currentInputDesc;
+​    QString currentOutputDesc;
+​    QString currentSampleInput;
+​    QString currentSampleOutput;
+​    QString currentUserCode; // Store code from editor for debugging
+​    QString generatedCode;   // Store the last generated code block for insertion
+};
+
+#endif // AIASSISTANTWIDGET_H
+
+Great! The header file 
+
+```
+widgets/aiAssistant.h
+```
+
+ has been updated to match the implementation changes.
+
+
+
+**Summary of Refactoring:**
+
+We have successfully refactored the 
+
+```
+AIAssistantWidget
+```
+
+ class in both 
+
+```
+aiAssistant.cpp
+```
+
+ and 
+
+```
+aiAssistant.h
+```
+
+. Here's a quick rundown of what we did:
+
+
+
+1. Asynchronous Operations:
+
+    
+
+   All the main AI interaction slots (
+
+   ```
+   onSendClicked
+   ```
+
+   ,
+
+    
+
+   ```
+   onAnalyzeClicked
+   ```
+
+   ,
+
+    
+
+   ```
+   onCodeClicked
+   ```
+
+   ,
+
+    
+
+   ```
+   onDebugClicked
+   ```
+
+   ) now return
+
+    
+
+   ```
+   QCoro::Task<>
+   ```
+
+   . This means they run asynchronously, preventing the user interface from freezing while waiting for the AI's response. Think of it like sending a letter – you drop it in the mailbox and can do other things while waiting for the reply, instead of standing there waiting.
+
+2. Direct API Calls:
+
+    
+
+   The slots now directly
+
+    
+
+   ```
+   co_await
+   ```
+
+    
+
+   the
+
+    
+
+   ```
+   aiClient->sendRequest()
+   ```
+
+    
+
+   method and handle the response within the same function, simplifying the logic.
+
+3. Singleton Usage:
+
+    
+
+   We consistently used the singleton instances
+
+    
+
+   ```
+   aiClient
+   ```
+
+    
+
+   and
+
+    
+
+   ```
+   aiChatManager
+   ```
+
+    
+
+   (obtained in the constructor) throughout the widget.
+
+4. Code Insertion Logic:
+
+    
+
+   Improved the
+
+    
+
+   ```
+   onInsertCodeClicked
+   ```
+
+    
+
+   function to more reliably find the main application window and the active code editor before inserting the AI-generated code.
+
+5. API Key Handling:
+
+    
+
+   Refined
+
+    
+
+   ```
+   onSetApiKeyClicked
+   ```
+
+    
+
+   to provide better user feedback when setting or clearing the API key.
+
+6. Cleanup:
+
+    
+
+   Removed outdated signal connections and slot functions (
+
+   ```
+   onRequestCompleted
+   ```
+
+   ,
+
+    
+
+   ```
+   onMessageAdded
+   ```
+
+   ) that are no longer needed with the new asynchronous approach.
+
+**Next Steps & Testing:**
+
+The core refactoring is complete! The next logical step is to **build the project and test the AI assistant thoroughly**. Please try using all the buttons (Analyze, Code, Debug, Send Message) and see if:
+
+- The interactions feel responsive (no UI freezes).
+- You receive the expected responses from the AI.
+- The "Insert Code" button appears correctly when the AI provides code and inserts it into the editor.
+- Setting/clearing the API key works as expected.
+- Error messages are displayed appropriately if something goes wrong (e.g., no API key, network error).
+
+Let me know how the testing goes or if you encounter any issues! We can debug them together. Once you're satisfied with the AI assistant's functionality, we can move on to other tasks or further refinements.

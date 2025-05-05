@@ -6,6 +6,7 @@
 
 #include "../util/file.h"
 #include "setting.h"
+#include "widgets/preview.h"
 
 IDEMainWindow::IDEMainWindow(QWidget *parent) : QMainWindow(parent) {
     ide = new IDE();
@@ -16,10 +17,12 @@ IDEMainWindow::IDEMainWindow(QWidget *parent) : QMainWindow(parent) {
     codeTab = new CodeTabWidget(this);
     menuBar = new MenuBarWidget(this);
     ojPreview = new OpenJudgePreviewWidget(this);
+    aiAssistant = new AIAssistantWidget(codeTab, this);
     footer = &FooterWidget::instance();
 
     terminal->setVisible(false);
     ojPreview->setVisible(false);
+    aiAssistant->setVisible(false);
 
     setup();
     connectSignals();
@@ -40,10 +43,12 @@ void IDEMainWindow::setup() {
     hSplitter->addWidget(fileTree);
     hSplitter->addWidget(codeTab);
     hSplitter->addWidget(ojPreview);
+    hSplitter->addWidget(aiAssistant);
 
-    hSplitter->setStretchFactor(0, 3);
+    hSplitter->setStretchFactor(0, 2);
     hSplitter->setStretchFactor(1, 4);
-    hSplitter->setStretchFactor(2, 3);
+    hSplitter->setStretchFactor(2, 2);
+    hSplitter->setStretchFactor(3, 2);
 
     auto *vSplitter = new QSplitter(Qt::Vertical, this);
     vSplitter->addWidget(hSplitter);
@@ -76,6 +81,31 @@ void IDEMainWindow::connectSignals() {
     connect(rightNav, &RightIconNavigateWidget::togglePreview, ojPreview,
             &OpenJudgePreviewWidget::setVisible);
     connect(rightNav, &RightIconNavigateWidget::openSetting, this, &IDEMainWindow::openSettings);
+    // Connect AI Assistant toggle button
+    connect(rightNav, &RightIconNavigateWidget::toggleAIAssistant, aiAssistant, &AIAssistantWidget::setVisible);
+
+    // --- Connect OJ Preview Change to AI Assistant ---
+    connect(ojPreview, &OpenJudgePreviewWidget::currentIndexChanged, this, [this]() {
+        // Get the current preview widget from ojPreview
+        auto currentPreview = ojPreview->curPreview(); // Need access to ojPreview member
+        if (currentPreview) {
+            QString title = currentPreview->getTitle();
+            QString description = currentPreview->toPlainText(); // Get text content as description
+
+            if (!title.isEmpty()) {
+                 // Pass the info to the AI assistant
+                 // Need access to aiAssistant member
+                aiAssistant->setProblemInfo(title, description);
+            } else {
+                qDebug() << "IDEMainWindow: Current OJ preview has an empty title.";
+            }
+        } else {
+            // No current preview (e.g., cleared or empty)
+            // Optionally clear AI assistant context or do nothing
+             qDebug() << "IDEMainWindow: No current OJ preview widget found.";
+             // aiAssistant->setProblemInfo("", ""); // Uncomment to clear AI context
+        }
+    }); // <-- Add this connection
 
     // File system
     connect(menuBar, &MenuBarWidget::newFile, fileTree,
