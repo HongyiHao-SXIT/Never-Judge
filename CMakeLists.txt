@@ -14,7 +14,7 @@ find_package(PkgConfig REQUIRED)
 # cross-platform
 if (APPLE)
     set(TREE_SITTER_INCLUDE_DIR /opt/homebrew/include)
-    set(TREE_SITTER_LIBRARY /opt/homebrew/lib/libtree-sitter.a)
+    set(TREE_SITTER_LIBRARIES /opt/homebrew/lib/libtree-sitter.a)
     include_directories(${TREE_SITTER_INCLUDE_DIR})
     link_directories(/opt/homebrew/lib)
 elseif(UNIX)
@@ -57,7 +57,7 @@ qt_add_executable(NeverJudge
 target_include_directories(NeverJudge PRIVATE ${TREE_SITTER_INCLUDE_LIBRARY})
 target_link_libraries(NeverJudge PRIVATE
         qtermwidget6 Qt6::Widgets Qt6::Svg Qt6::Network QCoro6::Core QCoro6::Network
-        ${TREE_SITTER_LIBRARY})
+        ${TREE_SITTER_LIBRARIES})
 set_target_properties(NeverJudge PROPERTIES
         ${BUNDLE_ID_OPTION}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
