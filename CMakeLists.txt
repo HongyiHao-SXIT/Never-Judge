@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig REQUIRED)
 # NOTE: We use tree-sitter-c/cpp/python here
+# cross-platform
 if (APPLE)
     set(TREE_SITTER_INCLUDE_DIR /opt/homebrew/include)
     set(TREE_SITTER_LIBRARY /opt/homebrew/lib/libtree-sitter.a)
