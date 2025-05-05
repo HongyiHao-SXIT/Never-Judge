@@ -2,6 +2,7 @@
     <qresource prefix="/res">
         <file>icons/left.svg</file>
         <file>icons/right.svg</file>
+        <file>icons/user.svg</file>
         <file>icons/folder.svg</file>
         <file>icons/search.svg</file>
         <file>icons/terminal.svg</file>
@@ -10,9 +11,17 @@
         <file>icons/setting.svg</file>
         <file>icons/palette.svg</file>
         <file>icons/start.svg</file>
-        <file>icons/robot.svg</file>
+        <file>icons/code/text.svg</file>
+        <file>icons/code/function.svg</file>
+        <file>icons/code/keyword.svg</file>
+        <file>icons/code/variable.svg</file>
+        <file>icons/code/class.svg</file>
+        <file>icons/code/module.svg</file>
+        <file>icons/code/file.svg</file>
+        <file>icons/code/enum.svg</file>
         <file>qss/footer.css</file>
         <file>qss/code.css</file>
+        <file>qss/completion.css</file>
         <file>qss/window.css</file>
         <file>qss/menu.css</file>
         <file>qss/fileTree.css</file>
@@ -22,7 +31,6 @@
         <file>script/parser.py</file>
         <file>script/submit.py</file>
         <file>script/submit_response.py</file>
-        <file>script/problem_detail.py</file>
         <file>setting/settings.json</file>
         <file>logo.txt</file>
     </qresource>

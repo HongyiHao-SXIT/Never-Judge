@@ -6,7 +6,7 @@
 #include <qcoro/qcoronetworkreply.h>
 #include <qcorotask.h>
 
-/** A wrapper parser for python script */
+/** A wrapper parser for python scripts */
 class OJParser {
 public:
     static QCoro::Task<std::expected<OJProblem, QString>> parseProblem(const QByteArray &html);

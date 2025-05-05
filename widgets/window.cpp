@@ -7,7 +7,7 @@
 #include "../util/file.h"
 #include "setting.h"
 
-IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWindow(parent) {
+IDEMainWindow::IDEMainWindow(QWidget *parent) : QMainWindow(parent) {
     ide = new IDE();
     leftNav = new LeftIconNavigateWidget(this);
     rightNav = new RightIconNavigateWidget(this);
@@ -17,17 +17,12 @@ IDEMainWindow::IDEMainWindow(int argc, char *argv[], QWidget *parent) : QMainWin
     menuBar = new MenuBarWidget(this);
     ojPreview = new OpenJudgePreviewWidget(this);
     footer = &FooterWidget::instance();
-    aiAssistant = new AIAssistantWidget(this);
 
     terminal->setVisible(false);
     ojPreview->setVisible(false);
-    aiAssistant->setVisible(false);
 
     setup();
     connectSignals();
-
-    QString project = QString::fromStdString(std::filesystem::current_path());
-    openFolder(project);
 }
 
 void IDEMainWindow::setup() {
@@ -45,12 +40,10 @@ void IDEMainWindow::setup() {
     hSplitter->addWidget(fileTree);
     hSplitter->addWidget(codeTab);
     hSplitter->addWidget(ojPreview);
-    hSplitter->addWidget(aiAssistant);
 
     hSplitter->setStretchFactor(0, 3);
     hSplitter->setStretchFactor(1, 4);
     hSplitter->setStretchFactor(2, 3);
-    hSplitter->setStretchFactor(3, 3);
 
     auto *vSplitter = new QSplitter(Qt::Vertical, this);
     vSplitter->addWidget(hSplitter);
@@ -74,10 +67,14 @@ void IDEMainWindow::setup() {
 
 void IDEMainWindow::connectSignals() {
     // Icon navigate
-    connect(leftNav, &LeftIconNavigateWidget::toggleFileTree, fileTree, &FileTreeWidget::setVisible);
-    connect(leftNav, &LeftIconNavigateWidget::toggleTerminal, terminal, &TerminalWidget::setVisible);
-    connect(rightNav, &RightIconNavigateWidget::togglePreview, ojPreview, &OpenJudgePreviewWidget::setVisible);
-    connect(rightNav, &RightIconNavigateWidget::toggleAIAssistant, aiAssistant, &AIAssistantWidget::setVisible);
+    connect(leftNav, &LeftIconNavigateWidget::toggleFileTree, fileTree,
+            &FileTreeWidget::setVisible);
+    connect(leftNav, &LeftIconNavigateWidget::toggleTerminal, terminal,
+            &TerminalWidget::setVisible);
+    connect(rightNav, &RightIconNavigateWidget::loginOJ, ojPreview,
+            &OpenJudgePreviewWidget::loginOJ);
+    connect(rightNav, &RightIconNavigateWidget::togglePreview, ojPreview,
+            &OpenJudgePreviewWidget::setVisible);
     connect(rightNav, &RightIconNavigateWidget::openSetting, this, &IDEMainWindow::openSettings);
 
     // File system
@@ -96,38 +93,23 @@ void IDEMainWindow::connectSignals() {
     connect(menuBar, &MenuBarWidget::openSettings, this, &IDEMainWindow::openSettings);
 
     // OJ
-    connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview, [this] { ojPreview->setVisible(true); });
+    connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview,
+            [this] { ojPreview->setVisible(true); });
     connect(menuBar, &MenuBarWidget::downloadOJ, ojPreview, &OpenJudgePreviewWidget::downloadOJ);
-    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview, [this] { ojPreview->setVisible(true); });
-    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview, &OpenJudgePreviewWidget::batchDownloadOJ);
+    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview,
+            [this] { ojPreview->setVisible(true); });
+    connect(menuBar, &MenuBarWidget::batchDownloadOJ, ojPreview,
+            &OpenJudgePreviewWidget::batchDownloadOJ);
     connect(menuBar, &MenuBarWidget::loginOJ, ojPreview, &OpenJudgePreviewWidget::loginOJ);
     connect(menuBar, &MenuBarWidget::submitOJ, this, &IDEMainWindow::submitCurrentCode);
     connect(ojPreview, &OpenJudgePreviewWidget::loginAs, menuBar, &MenuBarWidget::onLogin);
-    
-    // AI 助手
-    connect(rightNav, &RightIconNavigateWidget::toggleAIAssistant, aiAssistant, &AIAssistantWidget::setVisible);
-    connect(codeTab, &CodeTabWidget::currentChanged, this, [this](int index) {
-        if (index >= 0 && aiAssistant->isVisible()) {
-            CodeEditWidget *edit = codeTab->editAt(index);
-            if (edit) {
-                aiAssistant->setUserCode(edit->toPlainText());
-            }
-        }
-    });
-    
-    // 从 OpenJudge 预览获取题目信息
-    connect(ojPreview, &OpenJudgePreviewWidget::currentIndexChanged, this, [this]() {
-        if (aiAssistant->isVisible()) {
-            aiAssistant->getProblemInfoFromPreview(ojPreview);
-        }
-    });
 }
 
 void IDEMainWindow::openFolder(const QString &folder) const {
-    qDebug() << "Opening folder " << folder;
+    qDebug() << "IDEMainWindow: Opening folder" << folder;
     Project project(folder);
     ide->setProject(project);
-    codeTab->clearAll();
+    codeTab->setProject(&ide->curProject());
     fileTree->setRoot(project.getRoot());
     ojPreview->clear();
     terminal->setProject(&ide->curProject());

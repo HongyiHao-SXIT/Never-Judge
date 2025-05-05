@@ -31,7 +31,8 @@ void IconNavigateWidget::setup() {
     setFixedWidth(NAV_BTN_SIZE + 10);
 }
 
-QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString &tooltip, bool toggle) {
+QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString &tooltip,
+                                         bool toggle) {
     IconButton *button;
     if (toggle) {
         button = new IconToggleButton(this);
@@ -50,7 +51,9 @@ QPushButton *IconNavigateWidget::newIcon(const QString &iconName, const QString 
     return button;
 }
 
-LeftIconNavigateWidget::LeftIconNavigateWidget(QWidget *parent) : IconNavigateWidget(parent) { addIcons(); }
+LeftIconNavigateWidget::LeftIconNavigateWidget(QWidget *parent) : IconNavigateWidget(parent) {
+    addIcons();
+}
 
 void LeftIconNavigateWidget::addIcons() {
     auto *fileTreeBtn = newIcon("folder", tr("文件树"));
@@ -67,10 +70,14 @@ void LeftIconNavigateWidget::onToggleFileTree(const bool checked) { emit toggleF
 
 void LeftIconNavigateWidget::onToggleTerminal(const bool checked) { emit toggleTerminal(checked); }
 
-RightIconNavigateWidget::RightIconNavigateWidget(QWidget *parent) : IconNavigateWidget(parent) { addIcons(); }
+RightIconNavigateWidget::RightIconNavigateWidget(QWidget *parent) : IconNavigateWidget(parent) {
+    addIcons();
+}
 
 void RightIconNavigateWidget::addIcons() {
-    auto *previewBtn = newIcon("search", tr("显示预览"));
+    auto *loginBtn = newIcon("user", tr("登录到 OpenJudge"), false);
+    connect(loginBtn, &QPushButton::clicked, this, &RightIconNavigateWidget::onLoginOJ);
+    auto *previewBtn = newIcon("search", tr("显示题目预览"));
     connect(previewBtn, &QPushButton::toggled, this, &RightIconNavigateWidget::onTogglePreview);
     
     auto *aiAssistantBtn = newIcon("robot", tr("AI 刷题助手"));
@@ -79,6 +86,8 @@ void RightIconNavigateWidget::addIcons() {
     auto *settingBtn = newIcon("gear", tr("设置"), false);
     connect(settingBtn, &QPushButton::clicked, this, &RightIconNavigateWidget::onOpenSetting);
 }
+
+void RightIconNavigateWidget::onLoginOJ() { emit loginOJ(); }
 
 void RightIconNavigateWidget::onTogglePreview(const bool checked) { emit togglePreview(checked); }
 

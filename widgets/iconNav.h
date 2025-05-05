@@ -43,6 +43,7 @@ class RightIconNavigateWidget : public IconNavigateWidget {
     void addIcons();
 
 private slots:
+    void onLoginOJ();
     void onTogglePreview(bool checked);
     void onOpenSetting();
     void onToggleAIAssistant(bool checked);
@@ -51,6 +52,7 @@ public:
     explicit RightIconNavigateWidget(QWidget *parent = nullptr);
 
 signals:
+    void loginOJ();
     void togglePreview(bool show);
     void openSetting();
     void toggleAIAssistant(bool show);

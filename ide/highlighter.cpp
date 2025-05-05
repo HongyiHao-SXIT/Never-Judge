@@ -1,13 +1,14 @@
 #include "highlighter.h"
 #include <QJsonArray>
 #include <QLibrary>
+#include <qcorotimer.h>
 #include <utility>
 
 #include "../util/file.h"
 
 // TODO: optimize the rule memory use
 Highlighter::Highlighter(const TSLanguage *language, QString langName, QTextDocument *parent) :
-    QSyntaxHighlighter(parent), language(language), langName(std::move(langName)) {
+    QSyntaxHighlighter(parent), language(language), langName(std::move(langName)), parsing(false) {
     parser = ts_parser_new();
     ts_parser_set_language(parser, language);
     queries.clear();
@@ -38,7 +39,8 @@ QPair<TSLanguage *, QString> Highlighter::toTSLanguage(Language language) {
         return {nullptr, ""};
     }
 
-    auto languageFn = reinterpret_cast<TSLanguage *(*) ()>(tsLib.resolve(("tree_sitter_" + name).toUtf8()));
+    auto languageFn =
+            reinterpret_cast<TSLanguage *(*) ()>(tsLib.resolve(("tree_sitter_" + name).toUtf8()));
     if (!languageFn) {
         qWarning() << "Failed to resolve tree-sitter language function:" << tsLib.errorString();
         return {nullptr, ""};
@@ -67,33 +69,37 @@ Highlighter::~Highlighter() {
 }
 
 void Highlighter::setupBracketQuery() {
-    const char *queryPattern = "(\"(\" @leftb \")\" @right) "
-                               "(\"(\" @leftb \")\" @right) "
-                               "(\"{\" @leftb \"}\" @right) "
-                               "(\"[\" @leftb \"]\" @right)";
+    const char *queryPattern = "(\"(\" @left_ \")\" @right) "
+                               "(\"(\" @left_ \")\" @right) "
+                               "(\"{\" @left_ \"}\" @right) "
+                               "(\"[\" @left_ \"]\" @right)";
 
     uint32_t errorOffset;
     TSQueryError errorType;
-    bracketQuery = ts_query_new(language, queryPattern, strlen(queryPattern), &errorOffset, &errorType);
+    bracketQuery =
+            ts_query_new(language, queryPattern, strlen(queryPattern), &errorOffset, &errorType);
 
     if (!bracketQuery) {
-        qWarning() << "Failed to create bracket query for language" << langName << "at offset" << errorOffset
-                   << "with error" << errorType;
+        qWarning() << "Failed to create bracket query for language" << langName << "at offset"
+                   << errorOffset << "with error" << errorType;
         return;
     }
 
     bracketCursor = ts_query_cursor_new();
 }
 
-void Highlighter::setCursorPosition(int pos) {
-    if (currentCursorPos != pos) {
-        currentCursorPos = pos;
-        textNotChanged = true;
-        rehighlight();
+void Highlighter::setCursorPosition(int pos, const QTextBlock &block) {
+    currentCursorPos = pos;
+    if (lastBlock.isValid()) {
+        rehighlightBlock(lastBlock);
     }
+    rehighlightBlock(block);
+    lastBlock = block;
 }
 
 void Highlighter::highlightBlock(const QString &text) {
+    setFormat(0, text.length(), QTextCharFormat()); // reset format
+
     for (auto &result: results) {
         int blockPos = currentBlock().position();
         auto blockLen = text.length();
@@ -112,11 +118,12 @@ void Highlighter::highlightBlock(const QString &text) {
         }
     }
     highlightBracketPairs(text);
+    textNotChanged = true;
 }
 
 QTextCharFormat Highlighter::matchFormat(QTextCharFormat format) {
     format.setFontWeight(QFont::Bold);
-    format.setTextOutline(QPen(0xDD5500));
+    format.setForeground(QColor(0xFF0000));
     return format;
 }
 
@@ -130,8 +137,8 @@ void Highlighter::highlightBracketPairs(const QString &text) {
         return;
 
     QChar cursorChar = text.at(cursorPosInBlock);
-    if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' && cursorChar != '[' &&
-        cursorChar != ']') {
+    if (cursorChar != '(' && cursorChar != ')' && cursorChar != '{' && cursorChar != '}' &&
+        cursorChar != '[' && cursorChar != ']') {
         return;
     }
 
@@ -154,7 +161,7 @@ void Highlighter::highlightBracketPairs(const QString &text) {
             if (!name) {
                 continue;
             }
-            if (strcmp(name, "leftb") == 0) {
+            if (strcmp(name, "left_") == 0) {
                 leftPos = ts_node_start_byte(node);
                 hasLeft = true;
             } else if (strcmp(name, "right") == 0) {
@@ -171,7 +178,7 @@ void Highlighter::highlightBracketPairs(const QString &text) {
             int right = rightCharPos - blockPos;
 
             if (cursorPosInBlock == left || cursorPosInBlock == right) {
-                // TODO: Bracket cross lines?
+                // FIXME: Bracket cross lines?
                 // QTextBlock block = currentBlock();
                 // bool thisLine = true;
                 //
@@ -204,7 +211,7 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
 
     QList<HighlightRule> rules;
 
-    // read highlight rules from json
+    // read highlight rules from JSON
     for (const auto &array: jsonRules.toArray()) {
         auto obj = array.toObject();
         if (!obj.contains("pattern")) {
@@ -214,7 +221,8 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
         if (obj.contains("language")) {
             // skip other languages' rules
             auto languageJSON = obj["language"];
-            auto languages = languageJSON.isArray() ? languageJSON.toArray() : QJsonArray{languageJSON};
+            auto languages =
+                    languageJSON.isArray() ? languageJSON.toArray() : QJsonArray{languageJSON};
             bool found = false;
             for (const auto &lang: languages) {
                 if (lang.toString() == langName) {
@@ -275,10 +283,14 @@ void Highlighter::readRules(const QJsonValue &jsonRules) {
     }
 }
 
-void Highlighter::parseDocument() {
-    auto utf8Content = document()->toPlainText().toUtf8();
+QCoro::Task<> Highlighter::parseDocument() {
+    if (parsing) {
+        co_return;
+    }
 
-    // FIXME: use old tree here for better performance
+    auto utf8Content = document()->toPlainText().toUtf8();
+    // TODO: use old tree here for better performance
+    parsing = true;
     if (tree) {
         ts_tree_delete(tree);
     }
@@ -286,6 +298,9 @@ void Highlighter::parseDocument() {
 
     TSNode root = ts_tree_root_node(tree);
     results.clear();
+
+    int batchSize = 10000;
+    int cnt = 0;
 
     for (auto &[query, cursor, format]: queries) {
         ts_query_cursor_exec(cursor, query, root);
@@ -303,22 +318,44 @@ void Highlighter::parseDocument() {
                 int endPos = byteToCharPosition(endByte, utf8Content);
                 strRanges.emplace_back(startPos, endPos);
             }
+            if (++cnt % batchSize == 0) {
+                co_await QCoro::sleepFor(std::chrono::milliseconds(100));
+            }
         }
-        results.emplace_back(strRanges, std::move(format));
-    }
 
+        results.emplace_back(strRanges, format);
+    }
     rehighlight();
+    parsing = false;
+    co_return;
 }
 
 int Highlighter::byteToCharPosition(uint32_t bytePos, const QByteArray &utf8) {
-    int charPos = 0;
+    static const QByteArray *utf8Ptr = nullptr;
+    static QList<int> byteOffsets = {}; // charPos -> bytePos
 
-    for (int currentByte = 0; charPos < utf8.length() && currentByte < bytePos; charPos++) {
-        QChar c = utf8[charPos];
-        currentByte += c.unicode() <= 0x7F ? 1 : c.unicode() <= 0x7FF ? 2 : c.isSurrogate() ? 4 : 3;
+    if (utf8Ptr != &utf8) {
+        // build cache
+        byteOffsets.clear();
+        for (int byteOffset = 0; byteOffset < utf8.size();) {
+            byteOffsets.append(byteOffset);
+            uchar ch = utf8[byteOffset];
+
+            if (ch < 0x80)
+                byteOffset += 1;
+            else if ((ch & 0xE0) == 0xC0)
+                byteOffset += 2;
+            else if ((ch & 0xF0) == 0xE0)
+                byteOffset += 3;
+            else if ((ch & 0xF8) == 0xF0)
+                byteOffset += 4;
+        }
+        utf8Ptr = &utf8;
     }
 
-    return charPos;
+    // use binary search with complexity O(log n)
+    auto it = std::ranges::upper_bound(byteOffsets, bytePos);
+    return static_cast<int>(it - byteOffsets.begin() - 1);
 }
 
 Highlighter *HighlighterFactory::getHighlighter(Language language, QTextDocument *parent) {
