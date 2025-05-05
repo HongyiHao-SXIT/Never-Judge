@@ -1,22 +1,33 @@
 #ifndef AIASSISTANTWIDGET_H
 #define AIASSISTANTWIDGET_H
 
-#include <QWidget>       // <-- Add back: Needed for QWidget base class
-#include <QString>       // <-- Add back: Needed for QString members
-#include <QCoro/Task>    // <-- Add back: Needed for QCoro::Task<> return types
+#include <QDockWidget>
+#include <QString>
+#include <QCoro/Task>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QTextEdit>
+#include <QTextBrowser>
+#include <QPushButton>
+#include <QPlainTextEdit>
+#include <QProgressBar>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QApplication>
+#include <QScrollBar>
+#include <QMessageBox>
+#include <QInputDialog>
+#include <QUrl>
+#include "../ide/aiChat.h"
+#include "../web/aiClient.h"
+#include "../widgets/preview.h"
+#include "../web/problemCrawler.h"
 
-// Forward declarations
-class QPushButton;
-class QTextBrowser;
-class QPlainTextEdit;
-class QProgressBar;
-class AIClient;
-class AIChatManager;
+// 前向声明
 class CodeTabWidget;
 
-class AIAssistantWidget : public QWidget {
+class AIAssistantWidget : public QDockWidget {
     Q_OBJECT
 
 public:
@@ -29,24 +40,38 @@ public:
     void setUserCode(const QString &code);
 
 private slots:
-    QCoro::Task<> onSendClicked();
-    QCoro::Task<> onAnalyzeClicked();
-    QCoro::Task<> onCodeClicked();
-    QCoro::Task<> onDebugClicked();
-
+    void onSendClicked();
+    void onAnalyzeClicked();
+    void onCodeClicked();
+    void onDebugClicked();
     void onClearClicked();
     void onInsertCodeClicked();
     void onSetApiKeyClicked();
+    void onMessageAdded(const AIMessage &message);
+    void onRequestCompleted(bool success, const QString &response);
 
 private:
     void setupUI();
     void connectSignals();
+    void displayMessage(const AIMessage &message);
     void displayMarkdown(const QString &text, bool isUser);
     void setProgressVisible(bool visible);
     QString extractCodeFromMarkdown(const QString &markdown);
+    QString getCurrentCode() const;
+    void insertGeneratedCode(CodeTabWidget *codeTabWidget);
+    bool getProblemInfoFromPreview(OpenJudgePreviewWidget *preview);
+    QCoro::Task<bool> getProblemInfoFromUrl(const QUrl &url);
+    QString getFullProblemDescription() const; // 获取完整的题目描述
+
+    // UI组件
+    QWidget *mainWidget = nullptr;
+    QVBoxLayout *mainLayout = nullptr;
+    QHBoxLayout *buttonLayout = nullptr;
+    QHBoxLayout *settingsLayout = nullptr;
+    QLabel *apiKeyLabel = nullptr;
 
     QTextBrowser *conversationView = nullptr;
-    QPlainTextEdit *userInput = nullptr;
+    QTextEdit *userInput = nullptr;
     QPushButton *sendButton = nullptr;
     QPushButton *clearButton = nullptr;
     QPushButton *analyzeButton = nullptr;
@@ -56,8 +81,7 @@ private:
     QPushButton *setApiKeyButton = nullptr;
     QProgressBar *progressBar = nullptr;
 
-    AIClient *aiClient = nullptr;
-    AIChatManager *aiChatManager = nullptr;
+    // 数据成员
     CodeTabWidget* m_codeTab = nullptr;
     QString currentTitle;
     QString currentDescription;

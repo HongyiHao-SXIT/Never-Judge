@@ -2,6 +2,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDialogButtonBox>
 #include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>

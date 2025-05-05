@@ -2,6 +2,9 @@
 
 #include <QNetworkCookieJar>
 #include <QUrlQuery>
+#include <QJsonDocument>
+#include <QJsonParseError>
+#include <QJsonObject>
 
 #include "../util/file.h"
 #include "../util/script.h"
