@@ -54,7 +54,7 @@ qt_add_executable(NeverJudge
         ${PROJECT_SOURCES}
 )
 
-target_include_directories(NeverJudge PRIVATE ${TREE_SITTER_INCLUDE_LIBRARIES})
+target_include_directories(NeverJudge PRIVATE ${TREE_SITTER_INCLUDE_LIBRARY})
 target_link_libraries(NeverJudge PRIVATE
         qtermwidget6 Qt6::Widgets Qt6::Svg Qt6::Network QCoro6::Core QCoro6::Network
         ${TREE_SITTER_LIBRARY})
