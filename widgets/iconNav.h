@@ -45,6 +45,7 @@ class RightIconNavigateWidget : public IconNavigateWidget {
 private slots:
     void onTogglePreview(bool checked);
     void onOpenSetting();
+    void onToggleAIAssistant(bool checked);
 
 public:
     explicit RightIconNavigateWidget(QWidget *parent = nullptr);
@@ -52,6 +53,7 @@ public:
 signals:
     void togglePreview(bool show);
     void openSetting();
+    void toggleAIAssistant(bool show);
 };
 
 #endif // ICON_NAV_H

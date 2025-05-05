@@ -22,12 +22,15 @@ set(PROJECT_SOURCES
         util/script.cpp
         web/crawl.cpp
         web/parse.cpp
+        web/aiClient.cpp
+        web/problemCrawler.cpp
         res/resource.qrc
         ide/language.cpp
         ide/project.cpp
         ide/cmd.cpp
         ide/ide.cpp
         ide/highlighter.cpp
+        ide/aiChat.cpp
         widgets/setting.cpp
         widgets/icon.cpp
         widgets/footer.cpp
@@ -38,6 +41,7 @@ set(PROJECT_SOURCES
         widgets/terminal.cpp
         widgets/menu.cpp
         widgets/window.cpp
+        widgets/aiAssistant.cpp
         main.cpp
 )
 qt_add_executable(NeverJudge

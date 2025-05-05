@@ -72,6 +72,10 @@ RightIconNavigateWidget::RightIconNavigateWidget(QWidget *parent) : IconNavigate
 void RightIconNavigateWidget::addIcons() {
     auto *previewBtn = newIcon("search", tr("显示预览"));
     connect(previewBtn, &QPushButton::toggled, this, &RightIconNavigateWidget::onTogglePreview);
+    
+    auto *aiAssistantBtn = newIcon("robot", tr("AI 刷题助手"));
+    connect(aiAssistantBtn, &QPushButton::toggled, this, &RightIconNavigateWidget::onToggleAIAssistant);
+    
     auto *settingBtn = newIcon("gear", tr("设置"), false);
     connect(settingBtn, &QPushButton::clicked, this, &RightIconNavigateWidget::onOpenSetting);
 }
@@ -79,3 +83,5 @@ void RightIconNavigateWidget::addIcons() {
 void RightIconNavigateWidget::onTogglePreview(const bool checked) { emit togglePreview(checked); }
 
 void RightIconNavigateWidget::onOpenSetting() { emit openSetting(); }
+
+void RightIconNavigateWidget::onToggleAIAssistant(const bool checked) { emit toggleAIAssistant(checked); }

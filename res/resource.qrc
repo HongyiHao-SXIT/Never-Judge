@@ -10,6 +10,7 @@
         <file>icons/setting.svg</file>
         <file>icons/palette.svg</file>
         <file>icons/start.svg</file>
+        <file>icons/robot.svg</file>
         <file>qss/footer.css</file>
         <file>qss/code.css</file>
         <file>qss/window.css</file>
@@ -21,6 +22,7 @@
         <file>script/parser.py</file>
         <file>script/submit.py</file>
         <file>script/submit_response.py</file>
+        <file>script/problem_detail.py</file>
         <file>setting/settings.json</file>
         <file>logo.txt</file>
     </qresource>

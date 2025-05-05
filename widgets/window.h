@@ -11,6 +11,7 @@
 #include "menu.h"
 #include "preview.h"
 #include "terminal.h"
+#include "aiAssistant.h"
 
 class IDEMainWindow : public QMainWindow {
     Q_OBJECT
@@ -25,6 +26,7 @@ class IDEMainWindow : public QMainWindow {
     MenuBarWidget *menuBar;
     OpenJudgePreviewWidget *ojPreview;
     FooterWidget *footer;
+    AIAssistantWidget *aiAssistant;
 
     void setup();
     void connectSignals();
