@@ -16,7 +16,7 @@ ProblemCrawler &ProblemCrawler::getInstance() {
     return *instance;
 }
 
-QCoro::Task<std::expected<ProblemDetail, QString>> ProblemCrawler::getProblemDetail(const QUrl &url) {
+QCoro::Task<std::expected<OJProblemDetail, QString>> ProblemCrawler::getProblemDetail(const QUrl &url) {
     // Use existing crawler to get page content
     auto response = co_await Crawler::instance().get(url);
 
@@ -44,7 +44,7 @@ QCoro::Task<std::expected<ProblemDetail, QString>> ProblemCrawler::getProblemDet
         co_return std::unexpected("Failed to parse problem details: incorrect output format");
     }
 
-    ProblemDetail detail;
+    OJProblemDetail detail;
     detail.title = parts[0];
     detail.description = parts[1];
     detail.inputDesc = parts[2];
@@ -61,7 +61,7 @@ QCoro::Task<std::expected<ProblemDetail, QString>> ProblemCrawler::getProblemDet
     co_return detail;
 }
 
-QCoro::Task<std::expected<ProblemDetail, QString>> ProblemCrawler::getProblemDetail(
+QCoro::Task<std::expected<OJProblemDetail, QString>> ProblemCrawler::getProblemDetail(
     const QString &contestId,
     const QString &problemId
 ) {

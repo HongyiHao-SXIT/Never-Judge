@@ -640,7 +640,7 @@ QCoro::Task<bool> AIAssistantWidget::getProblemInfoFromUrl(const QUrl &url) {
         co_return false;
     }
 
-    const ProblemDetail& detail = result.value();
+    const OJProblemDetail& detail = result.value();
     currentTitle = detail.title;
     currentDescription = detail.description;
     currentInputDesc = detail.inputDesc;

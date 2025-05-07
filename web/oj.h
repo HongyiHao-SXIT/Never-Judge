@@ -9,6 +9,17 @@ struct OJProblem {
     QString content;
 };
 
+struct OJProblemDetail {
+    QString title;
+    QString description;
+    QString inputDesc;
+    QString outputDesc;
+    QString sampleInput;
+    QString sampleOutput;
+    QString hint;
+    QString sourceUrl;
+};
+
 struct OJMatch {
     QList<QUrl> problemUrls;
 };
@@ -34,4 +45,4 @@ struct OJSubmitResponse {
     QString message;
 };
 
-#endif //OJ_H
+#endif // OJ_H
