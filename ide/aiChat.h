@@ -6,96 +6,58 @@
 #include <QList>
 #include <QDateTime>
 
-/**
- * @brief AI 消息类型枚举
- */
+// AI message type enum
 enum class AIMessageType {
-    USER,       // 用户消息
-    ASSISTANT,  // AI 助手消息
-    SYSTEM      // 系统消息
+    USER,       // User message
+    ASSISTANT,  // AI assistant message
+    SYSTEM      // System message
 };
 
-/**
- * @brief AI 消息结构
- */
+// AI message structure
 struct AIMessage {
-    AIMessageType type;    // 消息类型
-    QString content;       // 消息内容
-    QDateTime timestamp;   // 时间戳
-    
+    AIMessageType type;    // Message type
+    QString content;       // Message content
+    QDateTime timestamp;   // Timestamp
+
     AIMessage(AIMessageType type, const QString &content)
         : type(type), content(content), timestamp(QDateTime::currentDateTime()) {}
 };
 
-/**
- * @brief AI 对话管理器类
- * 
- * 负责管理对话历史、上下文和会话状态
- */
+// AI chat manager class
 class AIChatManager : public QObject {
     Q_OBJECT
-    
+
 private:
-    QList<AIMessage> messages;  // 对话历史
-    int maxContextLength;       // 最大上下文长度
-    
-    // 单例模式
+    QList<AIMessage> messages;  // Chat history
+    int maxContextLength;       // Maximum context length
+
+    // Singleton pattern
     explicit AIChatManager(QObject *parent = nullptr);
     static AIChatManager *instance;
-    
+
 public:
-    /**
-     * @brief 获取 AIChatManager 单例
-     * @return AIChatManager 实例
-     */
+    // Get AIChatManager singleton instance
     static AIChatManager &getInstance();
-    
-    /**
-     * @brief 添加用户消息
-     * @param content 消息内容
-     */
+
+    // Add user message
     void addUserMessage(const QString &content);
-    
-    /**
-     * @brief 添加助手消息
-     * @param content 消息内容
-     */
+
+    // Add assistant message
     void addAssistantMessage(const QString &content);
-    
-    /**
-     * @brief 添加系统消息
-     * @param content 消息内容
-     */
+
+    // Add system message
     void addSystemMessage(const QString &content);
-    
-    /**
-     * @brief 获取完整对话历史
-     * @return 对话历史列表
-     */
+
+    // Get complete chat history
     QList<AIMessage> getMessages() const;
-    
-    /**
-     * @brief 获取当前上下文
-     * @param maxTokens 最大 token 数
-     * @return 格式化的上下文字符串
-     */
+
+    // Get current context
     QString getContext(int maxTokens = 4096) const;
-    
-    /**
-     * @brief 清空对话历史
-     */
+
+    // Clear chat history
     void clearMessages();
-    
-    /**
-     * @brief 生成题目解析提示词
-     * @param title 题目标题
-     * @param description 题目描述
-     * @param inputDesc 输入描述
-     * @param outputDesc 输出描述
-     * @param sampleInput 样例输入
-     * @param sampleOutput 样例输出
-     * @return 格式化的提示词
-     */
+
+    // Generate problem analysis prompt
     QString generateProblemAnalysisPrompt(
         const QString &title,
         const QString &description,
@@ -104,17 +66,8 @@ public:
         const QString &sampleInput,
         const QString &sampleOutput
     );
-    
-    /**
-     * @brief 生成示例代码提示词
-     * @param title 题目标题
-     * @param description 题目描述
-     * @param inputDesc 输入描述
-     * @param outputDesc 输出描述
-     * @param sampleInput 样例输入
-     * @param sampleOutput 样例输出
-     * @return 格式化的提示词
-     */
+
+    // Generate code example prompt
     QString generateCodeExamplePrompt(
         const QString &title,
         const QString &description,
@@ -123,16 +76,8 @@ public:
         const QString &sampleInput,
         const QString &sampleOutput
     );
-    
-    /**
-     * @brief 生成代码调试提示词
-     * @param title 题目标题
-     * @param description 题目描述
-     * @param sampleInput 样例输入
-     * @param sampleOutput 样例输出
-     * @param userCode 用户代码
-     * @return 格式化的提示词
-     */
+
+    // Generate debug prompt
     QString generateDebugPrompt(
         const QString &title,
         const QString &description,
@@ -140,12 +85,9 @@ public:
         const QString &sampleOutput,
         const QString &userCode
     );
-    
+
 signals:
-    /**
-     * @brief 消息添加信号
-     * @param message 新添加的消息
-     */
+    // Message added signal
     void messageAdded(const AIMessage &message);
 };
 

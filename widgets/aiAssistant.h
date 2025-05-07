@@ -24,7 +24,7 @@
 #include "../widgets/preview.h"
 #include "../web/problemCrawler.h"
 
-// 前向声明
+// Forward declaration
 class CodeTabWidget;
 
 class AIAssistantWidget : public QDockWidget {
@@ -39,7 +39,7 @@ public:
                          const QString &sampleInput, const QString &sampleOutput);
     void setUserCode(const QString &code);
 
-    // 显示当前题目信息
+    // Display current problem information
     void showCurrentProblemInfo();
 
 private slots:
@@ -54,7 +54,7 @@ private slots:
     void onMessageAdded(const AIMessage &message);
     void onRequestCompleted(bool success, const QString &response);
 
-    // 主动获取题目信息
+    // Actively get problem information
     bool tryGetProblemInfo();
 
 private:
@@ -68,16 +68,16 @@ private:
     void insertGeneratedCode(CodeTabWidget *codeTabWidget);
     bool getProblemInfoFromPreview(OpenJudgePreviewWidget *preview);
     QCoro::Task<bool> getProblemInfoFromUrl(const QUrl &url);
-    QString getFullProblemDescription() const; // 获取完整的题目描述
+    QString getFullProblemDescription() const;
 
-    // 发送AI请求的辅助函数
+    // Helper function to send AI request
     void sendAIRequest(const QString &prompt, const QString &requestType);
 
-    // 调试日志辅助函数
+    // Debug logging helper functions
     void logDebug(const QString &message) const;
-    void logCurrentProblemInfo() const; // 记录当前题目信息
+    void logCurrentProblemInfo() const;
 
-    // UI组件
+    // UI components
     QWidget *mainWidget = nullptr;
     QVBoxLayout *mainLayout = nullptr;
     QHBoxLayout *buttonLayout = nullptr;
@@ -96,7 +96,7 @@ private:
     QPushButton *setApiKeyButton = nullptr;
     QProgressBar *progressBar = nullptr;
 
-    // 数据成员
+    // Data members
     CodeTabWidget* m_codeTab = nullptr;
     QString currentTitle;
     QString currentDescription;

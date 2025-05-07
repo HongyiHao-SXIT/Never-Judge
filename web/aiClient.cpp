@@ -7,14 +7,11 @@
 
 #include "../util/file.h"
 
-// 初始化静态实例指针
+// Initialize static instance pointer
 AIClient* AIClient::instance = nullptr;
 
 AIClient::AIClient(QObject *parent) : QObject(parent) {
-    // 从配置中加载 API 密钥和端点
     apiEndpoint = "https://api.deepseek.com/v1/chat/completions";
-
-    // 尝试从配置中加载 API 密钥
     apiKey = Configs::instance().get("aiAssistant.apiKey").toString();
 }
 
@@ -27,8 +24,6 @@ AIClient &AIClient::getInstance() {
 
 void AIClient::setApiKey(const QString &key) {
     apiKey = key;
-
-    // 保存 API 密钥到配置
     Configs::instance().set("aiAssistant.apiKey", key);
 }
 
@@ -45,7 +40,7 @@ QJsonObject AIClient::buildRequestJson(const QString &prompt, int maxTokens, dou
     messages.append(message);
 
     QJsonObject json;
-    json["model"] = "deepseek-coder";  // 使用 DeepSeek Coder 模型
+    json["model"] = "deepseek-coder";  // Using DeepSeek Coder model
     json["messages"] = messages;
     json["max_tokens"] = maxTokens;
     json["temperature"] = temperature;
@@ -59,7 +54,7 @@ QCoro::Task<std::expected<QString, QString>> AIClient::sendRequest(
     double temperature
 ) {
     if (!hasApiKey()) {
-        co_return std::unexpected("API 密钥未设置");
+        co_return std::unexpected("API key not set");
     }
 
     QNetworkRequest request;
@@ -85,21 +80,21 @@ QCoro::Task<std::expected<QString, QString>> AIClient::sendRequest(
     QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
 
     if (parseError.error != QJsonParseError::NoError) {
-        co_return std::unexpected("JSON 解析错误: " + parseError.errorString());
+        co_return std::unexpected("JSON parse error: " + parseError.errorString());
     }
 
     QJsonObject responseJson = doc.object();
 
-    // 检查是否有错误
+    // Check for errors
     if (responseJson.contains("error")) {
         QString errorMsg = responseJson["error"].toObject()["message"].toString();
         co_return std::unexpected(errorMsg);
     }
 
-    // 提取生成的文本
+    // Extract generated text
     QJsonArray choices = responseJson["choices"].toArray();
     if (choices.isEmpty()) {
-        co_return std::unexpected("API 返回的响应中没有内容");
+        co_return std::unexpected("No content in API response");
     }
 
     QString responseText = choices[0].toObject()["message"].toObject()["content"].toString();
@@ -114,7 +109,7 @@ void AIClient::sendRequestSync(
     double temperature
 ) {
     if (!hasApiKey()) {
-        emit requestCompleted(false, "API 密钥未设置");
+        emit requestCompleted(false, "API key not set");
         return;
     }
 
@@ -126,10 +121,8 @@ void AIClient::sendRequestSync(
     QJsonObject requestJson = buildRequestJson(prompt, maxTokens, temperature);
     QByteArray requestData = QJsonDocument(requestJson).toJson();
 
-    // 创建网络请求
     QNetworkReply *reply = nam.post(request, requestData);
 
-    // 连接信号
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error()) {
             QString errorMsg = reply->errorString();
@@ -145,23 +138,23 @@ void AIClient::sendRequestSync(
         QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
 
         if (parseError.error != QJsonParseError::NoError) {
-            emit requestCompleted(false, "JSON 解析错误: " + parseError.errorString());
+            emit requestCompleted(false, "JSON parse error: " + parseError.errorString());
             return;
         }
 
         QJsonObject responseJson = doc.object();
 
-        // 检查是否有错误
+        // Check for errors
         if (responseJson.contains("error")) {
             QString errorMsg = responseJson["error"].toObject()["message"].toString();
             emit requestCompleted(false, errorMsg);
             return;
         }
 
-        // 提取生成的文本
+        // Extract generated text
         QJsonArray choices = responseJson["choices"].toArray();
         if (choices.isEmpty()) {
-            emit requestCompleted(false, "API 返回的响应中没有内容");
+            emit requestCompleted(false, "No content in API response");
             return;
         }
 
