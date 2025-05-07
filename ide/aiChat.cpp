@@ -1,10 +1,10 @@
 #include "aiChat.h"
 
-// 初始化静态实例指针
+// Initialize static instance pointer
 AIChatManager* AIChatManager::instance = nullptr;
 
 AIChatManager::AIChatManager(QObject *parent) : QObject(parent) {
-    maxContextLength = 10; // 默认保留最近10条消息作为上下文
+    maxContextLength = 10; // Default: keep the last 10 messages as context
 }
 
 AIChatManager &AIChatManager::getInstance() {
@@ -37,37 +37,35 @@ QList<AIMessage> AIChatManager::getMessages() const {
 }
 
 QString AIChatManager::getContext(int maxTokens) const {
-    // 简单实现，实际应用中可能需要更复杂的 token 计数
     QString context;
-    
-    // 从最新的消息开始，向前收集上下文
+
+    // Collect context starting from the most recent messages
     for (int i = messages.size() - 1; i >= 0; i--) {
         const AIMessage &msg = messages[i];
         QString role;
-        
+
         switch (msg.type) {
             case AIMessageType::USER:
-                role = "用户";
+                role = "User";
                 break;
             case AIMessageType::ASSISTANT:
-                role = "助手";
+                role = "Assistant";
                 break;
             case AIMessageType::SYSTEM:
-                role = "系统";
+                role = "System";
                 break;
         }
-        
+
         QString messageText = role + ": " + msg.content + "\n\n";
-        
-        // 简单估计 token 数量（中文每字约1-2个token）
-        // 如果添加这条消息会超出限制，就停止添加
+
+        // Simple token count estimation
         if (context.length() + messageText.length() > maxTokens * 2) {
             break;
         }
-        
+
         context = messageText + context;
     }
-    
+
     return context;
 }
 
@@ -84,18 +82,18 @@ QString AIChatManager::generateProblemAnalysisPrompt(
     const QString &sampleOutput
 ) {
     return QString(
-        "你是一位编程助手，请分析以下编程题目并给出解题思路：\n\n"
-        "题目：%1\n"
-        "描述：%2\n"
-        "输入：%3\n"
-        "输出：%4\n"
-        "样例输入：%5\n"
-        "样例输出：%6\n\n"
-        "请提供以下内容：\n"
-        "1. 题目理解和分析\n"
-        "2. 解题思路和算法\n"
-        "3. 时间复杂度和空间复杂度分析\n"
-        "4. 可能的边界情况和处理方法"
+        "You are a programming assistant. Please analyze the following programming problem and provide solution strategies:\n\n"
+        "Title: %1\n"
+        "Description: %2\n"
+        "Input: %3\n"
+        "Output: %4\n"
+        "Sample Input: %5\n"
+        "Sample Output: %6\n\n"
+        "Please provide the following:\n"
+        "1. Problem understanding and analysis\n"
+        "2. Solution approach and algorithm\n"
+        "3. Time and space complexity analysis\n"
+        "4. Possible edge cases and handling methods"
     ).arg(title, description, inputDesc, outputDesc, sampleInput, sampleOutput);
 }
 
@@ -108,18 +106,18 @@ QString AIChatManager::generateCodeExamplePrompt(
     const QString &sampleOutput
 ) {
     return QString(
-        "你是一位编程助手，请根据以下编程题目生成示例代码：\n\n"
-        "题目：%1\n"
-        "描述：%2\n"
-        "输入：%3\n"
-        "输出：%4\n"
-        "样例输入：%5\n"
-        "样例输出：%6\n\n"
-        "请生成一个完整、高效、易于理解的C++解决方案。包括：\n"
-        "1. 必要的注释说明算法思路\n"
-        "2. 输入输出处理\n"
-        "3. 主要算法实现\n"
-        "4. 边界情况处理"
+        "You are a programming assistant. Please generate example code for the following programming problem:\n\n"
+        "Title: %1\n"
+        "Description: %2\n"
+        "Input: %3\n"
+        "Output: %4\n"
+        "Sample Input: %5\n"
+        "Sample Output: %6\n\n"
+        "Please generate a complete, efficient, and easy-to-understand C++ solution including:\n"
+        "1. Necessary comments explaining the algorithm\n"
+        "2. Input/output handling\n"
+        "3. Main algorithm implementation\n"
+        "4. Edge case handling"
     ).arg(title, description, inputDesc, outputDesc, sampleInput, sampleOutput);
 }
 
@@ -131,17 +129,17 @@ QString AIChatManager::generateDebugPrompt(
     const QString &userCode
 ) {
     return QString(
-        "你是一位编程助手，请帮助调试以下代码：\n\n"
-        "题目：%1\n"
-        "描述：%2\n"
-        "样例输入：%3\n"
-        "样例输出：%4\n\n"
-        "用户代码：\n```cpp\n%5\n```\n\n"
-        "请分析代码中可能存在的问题：\n"
-        "1. 逻辑错误\n"
-        "2. 边界情况处理\n"
-        "3. 算法实现问题\n"
-        "4. 输入输出处理错误\n"
-        "5. 提供修复建议"
+        "You are a programming assistant. Please help debug the following code:\n\n"
+        "Title: %1\n"
+        "Description: %2\n"
+        "Sample Input: %3\n"
+        "Sample Output: %4\n\n"
+        "User Code:\n```cpp\n%5\n```\n\n"
+        "Please analyze potential issues in the code:\n"
+        "1. Logic errors\n"
+        "2. Edge case handling\n"
+        "3. Algorithm implementation issues\n"
+        "4. Input/output processing errors\n"
+        "5. Provide fix suggestions"
     ).arg(title, description, sampleInput, sampleOutput, userCode);
 }

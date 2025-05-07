@@ -9,11 +9,7 @@
 #include <qcoro/qcoronetworkreply.h>
 #include <qcorotask.h>
 
-/**
- * @brief DeepSeek API 客户端类
- *
- * 负责与 DeepSeek API 通信，发送请求和处理响应
- */
+// DeepSeek API client class
 class AIClient : public QObject {
     Q_OBJECT
 
@@ -22,61 +18,35 @@ private:
     QString apiEndpoint;
     QNetworkAccessManager nam;
 
-    // 单例模式
+    // Singleton pattern
     explicit AIClient(QObject *parent = nullptr);
     static AIClient *instance;
 
 public:
-    /**
-     * @brief 获取 AIClient 单例
-     * @return AIClient 实例
-     */
+    // Get AIClient singleton instance
     static AIClient &getInstance();
 
-    /**
-     * @brief 设置 API 密钥
-     * @param key DeepSeek API 密钥
-     */
+    // Set API key
     void setApiKey(const QString &key);
 
-    /**
-     * @brief 检查是否已设置 API 密钥
-     * @return 是否已设置 API 密钥
-     */
+    // Check if API key is set
     bool hasApiKey() const;
 
-    /**
-     * @brief 向 DeepSeek API 发送请求（协程版本）
-     * @param prompt 提示词
-     * @param maxTokens 最大生成 token 数
-     * @param temperature 温度参数
-     * @return 成功返回响应文本，失败返回错误信息
-     */
+    // Send request to DeepSeek API (coroutine version)
     QCoro::Task<std::expected<QString, QString>> sendRequest(
         const QString &prompt,
         int maxTokens = 2048,
         double temperature = 0.7
     );
 
-    /**
-     * @brief 向 DeepSeek API 发送请求（同步版本）
-     * @param prompt 提示词
-     * @param maxTokens 最大生成 token 数
-     * @param temperature 温度参数
-     */
+    // Send request to DeepSeek API (synchronous version)
     void sendRequestSync(
         const QString &prompt,
         int maxTokens = 2048,
         double temperature = 0.7
     );
 
-    /**
-     * @brief 构造 API 请求 JSON
-     * @param prompt 提示词
-     * @param maxTokens 最大生成 token 数
-     * @param temperature 温度参数
-     * @return 请求 JSON 对象
-     */
+    // Build API request JSON
     QJsonObject buildRequestJson(
         const QString &prompt,
         int maxTokens,
@@ -84,11 +54,7 @@ public:
     );
 
 signals:
-    /**
-     * @brief API 调用完成信号
-     * @param success 是否成功
-     * @param response 响应文本或错误信息
-     */
+    // API call completed signal
     void requestCompleted(bool success, const QString &response);
 };
 

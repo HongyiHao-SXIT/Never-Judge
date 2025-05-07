@@ -1,36 +1,34 @@
 #include "aiAssistant.h"
 
-#include <QFont>
-#include <QFontMetrics>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QScrollBar>
+#include <QFont>
+#include <QFontMetrics>
 #include <QTextBlock>
 #include <QTextCursor>
 
-#include "../ide/aiChat.h"
 #include "../web/aiClient.h"
+#include "../ide/aiChat.h"
 #include "../widgets/code.h"
 
-AIAssistantWidget::AIAssistantWidget(CodeTabWidget *codeTab, QWidget *parent) :
-    QDockWidget(tr("AI 刷题助手"), parent) {
-    logDebug("初始化AI助手窗口");
+AIAssistantWidget::AIAssistantWidget(CodeTabWidget* codeTab, QWidget *parent) : QDockWidget(tr("AI 刷题助手"), parent) {
+    logDebug("Initializing AI Assistant window");
 
     setupUI();
     connectSignals();
 
-    // 检查 API 密钥是否已设置
     if (!AIClient::getInstance().hasApiKey()) {
-        logDebug("API密钥未设置，显示提示信息");
+        logDebug("API key not set, showing information message");
         QMessageBox::information(this, tr("API 密钥未设置"),
-                                 tr("请先设置 DeepSeek API 密钥才能使用 AI 助手功能。"));
+            tr("请先设置 DeepSeek API 密钥才能使用 AI 助手功能。"));
     }
 
     m_codeTab = codeTab;
     if (m_codeTab) {
-        logDebug("成功获取代码编辑器指针");
+        logDebug("Successfully obtained code editor pointer");
     } else {
-        logDebug("代码编辑器指针为空");
+        logDebug("Code editor pointer is null");
     }
 }
 
@@ -49,8 +47,7 @@ void AIAssistantWidget::setupUI() {
     conversationView->setOpenLinks(false);
     conversationView->setOpenExternalLinks(true);
     conversationView->setTextInteractionFlags(Qt::TextBrowserInteraction);
-    conversationView->setStyleSheet("background-color: #1E1E1E; color: #D4D4D4; border: 1px solid "
-                                    "#3F3F46; border-radius: 4px;");
+    conversationView->setStyleSheet("background-color: #1E1E1E; color: #D4D4D4; border: 1px solid #3F3F46; border-radius: 4px;");
 
     // 设置字体
     QFont font("Microsoft YaHei", 10);
@@ -61,26 +58,22 @@ void AIAssistantWidget::setupUI() {
     userInput->setPlaceholderText(tr("输入你的问题..."));
     userInput->setMaximumHeight(100);
     userInput->setFont(font);
-    userInput->setStyleSheet("background-color: #252526; color: #D4D4D4; border: 1px solid "
-                             "#3F3F46; border-radius: 4px;");
+    userInput->setStyleSheet("background-color: #252526; color: #D4D4D4; border: 1px solid #3F3F46; border-radius: 4px;");
 
     // 功能按钮区
     buttonLayout = new QHBoxLayout();
 
     // 创建按钮并设置统一样式 - 使用与IDE匹配的颜色方案
-    QString buttonStyle = "QPushButton { background-color: #3E3E42; color: #D4D4D4; border: none; "
-                          "border-radius: 4px; padding: 6px 12px; }"
+    QString buttonStyle = "QPushButton { background-color: #3E3E42; color: #D4D4D4; border: none; border-radius: 4px; padding: 6px 12px; }"
                           "QPushButton:hover { background-color: #505050; }"
                           "QPushButton:pressed { background-color: #2A2D2E; }"
                           "QPushButton:disabled { background-color: #2D2D30; color: #6D6D6D; }";
 
     // 为快捷功能按钮设置突出显示的样式
-    QString highlightButtonStyle =
-            "QPushButton { background-color: #3574F0; color: #FFFFFF; border: none; border-radius: "
-            "4px; padding: 6px 12px; }"
-            "QPushButton:hover { background-color: #4A85F5; }"
-            "QPushButton:pressed { background-color: #2A65D1; }"
-            "QPushButton:disabled { background-color: #2D2D30; color: #6D6D6D; }";
+    QString highlightButtonStyle = "QPushButton { background-color: #3574F0; color: #FFFFFF; border: none; border-radius: 4px; padding: 6px 12px; }"
+                                  "QPushButton:hover { background-color: #4A85F5; }"
+                                  "QPushButton:pressed { background-color: #2A65D1; }"
+                                  "QPushButton:disabled { background-color: #2D2D30; color: #6D6D6D; }";
 
     sendButton = new QPushButton(tr("发送"), mainWidget);
     clearButton = new QPushButton(tr("清空"), mainWidget);
@@ -125,17 +118,19 @@ void AIAssistantWidget::setupUI() {
     progressBar = new QProgressBar(mainWidget);
     progressBar->setRange(0, 0); // 设置为不确定模式
     progressBar->setVisible(false);
-    progressBar->setStyleSheet("QProgressBar {"
-                               "   background-color: #2D2D30;"
-                               "   color: #D4D4D4;"
-                               "   border: 1px solid #3F3F46;"
-                               "   border-radius: 3px;"
-                               "   text-align: center;"
-                               "}"
-                               "QProgressBar::chunk {"
-                               "   background-color: #569CD6;"
-                               "   border-radius: 2px;"
-                               "}");
+    progressBar->setStyleSheet(
+        "QProgressBar {"
+        "   background-color: #2D2D30;"
+        "   color: #D4D4D4;"
+        "   border: 1px solid #3F3F46;"
+        "   border-radius: 3px;"
+        "   text-align: center;"
+        "}"
+        "QProgressBar::chunk {"
+        "   background-color: #569CD6;"
+        "   border-radius: 2px;"
+        "}"
+    );
 
     // 添加所有组件到主布局
     mainLayout->addLayout(settingsLayout);
@@ -158,18 +153,17 @@ void AIAssistantWidget::connectSignals() {
     connect(analyzeButton, &QPushButton::clicked, this, &AIAssistantWidget::onAnalyzeClicked);
     connect(codeButton, &QPushButton::clicked, this, &AIAssistantWidget::onCodeClicked);
     connect(debugButton, &QPushButton::clicked, this, &AIAssistantWidget::onDebugClicked);
-    connect(showProblemButton, &QPushButton::clicked, this,
-            &AIAssistantWidget::onShowProblemClicked);
+    connect(showProblemButton, &QPushButton::clicked, this, &AIAssistantWidget::onShowProblemClicked);
     connect(setApiKeyButton, &QPushButton::clicked, this, &AIAssistantWidget::onSetApiKeyClicked);
     connect(insertCodeButton, &QPushButton::clicked, this, &AIAssistantWidget::onInsertCodeClicked);
 
     // 连接对话管理器信号
-    connect(&AIChatManager::getInstance(), &AIChatManager::messageAdded, this,
-            &AIAssistantWidget::onMessageAdded);
+    connect(&AIChatManager::getInstance(), &AIChatManager::messageAdded,
+            this, &AIAssistantWidget::onMessageAdded);
 
     // 连接 AI 客户端信号
-    connect(&AIClient::getInstance(), &AIClient::requestCompleted, this,
-            &AIAssistantWidget::onRequestCompleted);
+    connect(&AIClient::getInstance(), &AIClient::requestCompleted,
+            this, &AIAssistantWidget::onRequestCompleted);
 
     // 连接回车键发送
     connect(userInput, &QTextEdit::textChanged, this, [this]() {
@@ -188,25 +182,25 @@ void AIAssistantWidget::connectSignals() {
 }
 
 QString AIAssistantWidget::getCurrentCode() const {
-    logDebug("尝试获取当前代码");
+    logDebug("Attempting to get current code");
 
     if (m_codeTab) {
         auto currentEdit = m_codeTab->curEdit();
         if (currentEdit) {
             QString code = currentEdit->toPlainText();
-            logDebug("成功获取当前代码，长度: " + QString::number(code.length()) + " 字符");
+            logDebug("Successfully retrieved current code, length: " + QString::number(code.length()) + " characters");
             return code;
         } else {
-            logDebug("未找到活动的代码编辑器");
+            logDebug("No active code editor found");
             qWarning() << "AIAssistantWidget: No active code editor found.";
         }
     } else {
-        logDebug("CodeTabWidget指针为空");
+        logDebug("CodeTabWidget pointer is null");
         qWarning() << "AIAssistantWidget: CodeTabWidget pointer is null.";
     }
 
-    logDebug("无法获取代码，返回空字符串");
-    return QString(); // Return empty string if code cannot be retrieved
+    logDebug("Unable to get code, returning empty string");
+    return QString();
 }
 
 void AIAssistantWidget::displayMessage(const AIMessage &message) {
@@ -217,14 +211,32 @@ void AIAssistantWidget::displayMessage(const AIMessage &message) {
 }
 
 void AIAssistantWidget::displayMarkdown(const QString &text, bool isUser) {
-    QString roleText =
-            isUser ? "<p style='color: #569CD6;'><b><big>用户</b></big></p>"
-                   : "<p style='color: #C586C0;'><b><big>AI 助手</b></big></p>";
-    historyMarkdown += roleText;
-    historyMarkdown += "\n\n --- \n\n";
-    historyMarkdown += text + "<br /><br /><br />";
-    conversationView->setMarkdown(historyMarkdown);
+    // 设置文本颜色和样式 - 使用深色主题
+    QString style = isUser ?
+        "background-color: #2D2D30; color: #D4D4D4; border-radius: 5px; padding: 8px; margin: 8px; border-left: 3px solid #569CD6;" :
+        "background-color: #252526; color: #D4D4D4; border-radius: 5px; padding: 8px; margin: 8px; border-left: 3px solid #C586C0;";
 
+    QString roleText = isUser ?
+        "<div style='margin-bottom: 5px; color: #569CD6;'><b>用户:</b></div>" :
+        "<div style='margin-bottom: 5px; color: #C586C0;'><b>AI 助手:</b></div>";
+
+    // 处理Markdown中的代码块，改进显示效果
+    QString formattedText = text;
+    formattedText.replace(QRegularExpression("```(\\w*)\\s*([\\s\\S]*?)```"),
+                         "<pre style='background-color: #1E1E1E; border: 1px solid #3F3F46; border-radius: 3px; padding: 8px; overflow-x: auto; color: #DCDCAA;'>$2</pre>");
+
+    // 处理Markdown中的行内代码
+    formattedText.replace(QRegularExpression("`([^`]+)`"),
+                         "<code style='background-color: #1E1E1E; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; color: #DCDCAA;'>$1</code>");
+
+    // 创建 HTML
+    QString html = QString("<div style='%1'>%2%3</div>")
+        .arg(style, roleText, formattedText);
+
+    // 添加到对话历史
+    conversationView->append(html);
+
+    // 滚动到底部
     QScrollBar *scrollBar = conversationView->verticalScrollBar();
     scrollBar->setValue(scrollBar->maximum());
 }
@@ -241,9 +253,14 @@ void AIAssistantWidget::setProgressVisible(bool visible) {
     userInput->setEnabled(!visible);
 }
 
-void AIAssistantWidget::setProblemInfo(const QString &title, const QString &description,
-                                       const QString &inputDesc, const QString &outputDesc,
-                                       const QString &sampleInput, const QString &sampleOutput) {
+void AIAssistantWidget::setProblemInfo(
+    const QString &title,
+    const QString &description,
+    const QString &inputDesc,
+    const QString &outputDesc,
+    const QString &sampleInput,
+    const QString &sampleOutput
+) {
     // 设置题目信息
     currentTitle = title;
     currentDescription = description;
@@ -290,202 +307,182 @@ void AIAssistantWidget::onClearClicked() {
 }
 
 bool AIAssistantWidget::tryGetProblemInfo() {
-    logDebug("尝试主动获取题目信息");
+    logDebug("Attempting to actively get problem information");
 
-    // 尝试从预览窗口获取题目信息
     QWidget *parent = this;
     while (parent && !parent->inherits("IDEMainWindow")) {
         parent = parent->parentWidget();
     }
 
     if (parent) {
-        logDebug("找到主窗口，尝试获取预览窗口");
-        OpenJudgePreviewWidget *preview = parent->findChild<OpenJudgePreviewWidget *>();
+        logDebug("Found main window, attempting to get preview window");
+        OpenJudgePreviewWidget *preview = parent->findChild<OpenJudgePreviewWidget*>();
         if (preview && preview->isVisible()) {
-            logDebug("找到可见的预览窗口，尝试获取题目信息");
+            logDebug("Found visible preview window, attempting to get problem info");
             if (getProblemInfoFromPreview(preview)) {
-                logDebug("成功从预览窗口获取题目信息");
+                logDebug("Successfully retrieved problem info from preview window");
                 return true;
             } else {
-                logDebug("从预览窗口获取题目信息失败");
+                logDebug("Failed to get problem info from preview window");
             }
         } else {
-            logDebug("预览窗口不可见或未找到");
+            logDebug("Preview window not visible or not found");
         }
     } else {
-        logDebug("未找到主窗口");
+        logDebug("Main window not found");
     }
 
     return false;
 }
 
 void AIAssistantWidget::onAnalyzeClicked() {
-    qDebug() << "[AI助手调试] 题目解析按钮被点击";
+    qDebug() << "[AI Assistant Debug] Problem analysis button clicked";
 
-    // 尝试主动获取题目信息
     tryGetProblemInfo();
 
-    // 检查是否有题目信息
     if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
-        qDebug() << "[AI助手调试] 题目信息不完整，无法生成解析";
-        QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
+        qDebug() << "[AI Assistant Debug] Problem information incomplete, cannot generate analysis";
+        QMessageBox::warning(this, tr("缺少题目信息"),
+            tr("请先打开一个题目或手动输入题目信息。"));
         return;
     }
 
-    // 获取完整的题目信息
     QString fullDescription = getFullProblemDescription();
-    qDebug() << "[AI助手调试] 获取到完整题目描述，长度:" << fullDescription.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Retrieved complete problem description, length:" << fullDescription.length() << "characters";
 
-    // 生成题目解析提示词
     QString prompt = QString("请详细分析以下算法题目，包括以下内容：\n"
-                             "1. 题目的核心问题和考点\n"
-                             "2. 解题思路和算法策略\n"
-                             "3. 可能的边界情况和注意事项\n"
-                             "4. 时间复杂度和空间复杂度分析\n\n"
-                             "题目：%1\n\n%2")
-                             .arg(currentTitle, fullDescription);
+                            "1. 题目的核心问题和考点\n"
+                            "2. 解题思路和算法策略\n"
+                            "3. 可能的边界情况和注意事项\n"
+                            "4. 时间复杂度和空间复杂度分析\n\n"
+                            "题目：%1\n\n%2")
+                         .arg(currentTitle, fullDescription);
 
-    qDebug() << "[AI助手调试] 生成题目解析提示词，长度:" << prompt.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Generated problem analysis prompt, length:" << prompt.length() << "characters";
 
-    // 添加系统消息，表明这是一键生成的分析
     AIMessage systemMsg(AIMessageType::SYSTEM, tr("正在生成题目解析..."));
     displayMessage(systemMsg);
 
-    // 显示进度条
     setProgressVisible(true);
 
-    // 发送请求
-    qDebug() << "[AI助手调试] 发送题目解析请求";
+    qDebug() << "[AI Assistant Debug] Sending problem analysis request";
     sendAIRequest(prompt, "题目解析");
 }
 
 void AIAssistantWidget::onCodeClicked() {
-    qDebug() << "[AI助手调试] 示例代码按钮被点击";
+    qDebug() << "[AI Assistant Debug] Example code button clicked";
 
-    // 尝试主动获取题目信息
     tryGetProblemInfo();
 
-    // 检查是否有题目信息
     if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
-        qDebug() << "[AI助手调试] 题目信息不完整，无法生成代码";
-        QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
+        qDebug() << "[AI Assistant Debug] Problem information incomplete, cannot generate code";
+        QMessageBox::warning(this, tr("缺少题目信息"),
+            tr("请先打开一个题目或手动输入题目信息。"));
         return;
     }
 
-    // 获取完整的题目信息
     QString fullDescription = getFullProblemDescription();
-    qDebug() << "[AI助手调试] 获取到完整题目描述，长度:" << fullDescription.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Retrieved complete problem description, length:" << fullDescription.length() << "characters";
 
-    // 生成示例代码提示词
-    QString prompt =
-            QString("请为以下算法题目生成一个完整、高效、易于理解的C++示例代码。代码应该：\n"
-                    "1. 包含详细的注释，解释关键步骤和算法思路\n"
-                    "2. 处理各种边界情况\n"
-                    "3. 使用合适的数据结构和算法\n"
-                    "4. 遵循良好的编程实践\n\n"
-                    "题目：%1\n\n%2")
-                    .arg(currentTitle, fullDescription);
+    QString prompt = QString("请为以下算法题目生成一个完整、高效、易于理解的C++示例代码。代码应该：\n"
+                            "1. 包含详细的注释，解释关键步骤和算法思路\n"
+                            "2. 处理各种边界情况\n"
+                            "3. 使用合适的数据结构和算法\n"
+                            "4. 遵循良好的编程实践\n\n"
+                            "题目：%1\n\n%2")
+                         .arg(currentTitle, fullDescription);
 
-    qDebug() << "[AI助手调试] 生成示例代码提示词，长度:" << prompt.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Generated example code prompt, length:" << prompt.length() << "characters";
 
-    // 添加系统消息，表明这是一键生成的代码
     AIMessage systemMsg(AIMessageType::SYSTEM, tr("正在生成示例代码..."));
     displayMessage(systemMsg);
 
-    // 显示进度条
     setProgressVisible(true);
 
-    // 发送请求
-    qDebug() << "[AI助手调试] 发送示例代码请求";
+    qDebug() << "[AI Assistant Debug] Sending example code request";
     sendAIRequest(prompt, "示例代码");
 }
 
 void AIAssistantWidget::onDebugClicked() {
-    qDebug() << "[AI助手调试] 调试按钮被点击";
+    qDebug() << "[AI Assistant Debug] Debug button clicked";
 
     QString userCode = getCurrentCode();
     if (userCode.isEmpty()) {
-        qDebug() << "[AI助手调试] 未获取到代码";
-        QMessageBox::warning(this, tr("缺少代码"), tr("请先打开或编写需要调试的代码。"));
+        qDebug() << "[AI Assistant Debug] No code retrieved";
+        QMessageBox::warning(this, tr("缺少代码"),
+            tr("请先打开或编写需要调试的代码。"));
         return;
     }
 
-    qDebug() << "[AI助手调试] 获取到代码，长度:" << userCode.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Retrieved code, length:" << userCode.length() << "characters";
 
-    // 尝试主动获取题目信息
     tryGetProblemInfo();
 
-    // 检查是否有题目信息
     if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
-        qDebug() << "[AI助手调试] 题目信息不完整，无法生成调试分析";
-        QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
+        qDebug() << "[AI Assistant Debug] Problem information incomplete, cannot generate debug analysis";
+        QMessageBox::warning(this, tr("缺少题目信息"),
+            tr("请先打开一个题目或手动输入题目信息。"));
         return;
     }
 
-    // 获取完整的题目信息
     QString fullDescription = getFullProblemDescription();
-    qDebug() << "[AI助手调试] 获取到完整题目描述，长度:" << fullDescription.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Retrieved complete problem description, length:" << fullDescription.length() << "characters";
 
-    // 生成调试提示词
     QString prompt = QString("请帮助调试以下代码，详细分析可能存在的问题：\n"
-                             "1. 逻辑错误\n"
-                             "2. 边界情况处理\n"
-                             "3. 算法实现问题\n"
-                             "4. 性能优化建议\n\n"
-                             "题目：%1\n\n%2\n\n"
-                             "代码：\n```cpp\n%3\n```")
-                             .arg(currentTitle, fullDescription, userCode);
+                            "1. 逻辑错误\n"
+                            "2. 边界情况处理\n"
+                            "3. 算法实现问题\n"
+                            "4. 性能优化建议\n\n"
+                            "题目：%1\n\n%2\n\n"
+                            "代码：\n```cpp\n%3\n```")
+                         .arg(currentTitle, fullDescription, userCode);
 
-    qDebug() << "[AI助手调试] 生成调试提示词，长度:" << prompt.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Generated debug prompt, length:" << prompt.length() << "characters";
 
-    // 添加用户消息并显示
     AIMessage userMsg(AIMessageType::USER, "请帮我调试这段代码");
     displayMessage(userMsg);
 
-    // 显示进度条
     setProgressVisible(true);
 
-    // 发送请求
-    qDebug() << "[AI助手调试] 发送调试请求";
+    qDebug() << "[AI Assistant Debug] Sending debug request";
     sendAIRequest(prompt, "调试");
 }
 
 void AIAssistantWidget::onShowProblemClicked() {
-    logDebug("显示题目按钮被点击");
+    logDebug("Show problem button clicked");
 
-    // 尝试主动获取题目信息
     if (tryGetProblemInfo()) {
-        logDebug("成功获取题目信息，准备显示");
+        logDebug("Successfully retrieved problem info, preparing to display");
     } else {
-        logDebug("未能获取新的题目信息，使用当前信息");
+        logDebug("Failed to get new problem info, using current info");
     }
 
-    // 显示当前题目信息
     showCurrentProblemInfo();
 }
 
 void AIAssistantWidget::onInsertCodeClicked() {
-    logDebug("插入代码按钮被点击");
+    logDebug("Insert code button clicked");
 
-    // 查找主窗口
     QWidget *parent = this;
     while (parent && !parent->inherits("IDEMainWindow")) {
         parent = parent->parentWidget();
     }
 
     if (!parent) {
-        logDebug("无法找到主窗口");
-        QMessageBox::warning(this, tr("无法访问编辑器"), tr("无法找到主窗口，无法插入代码。"));
+        logDebug("Cannot find main window");
+        QMessageBox::warning(this, tr("无法访问编辑器"),
+            tr("无法找到主窗口，无法插入代码。"));
         return;
     }
 
-    logDebug("找到主窗口，尝试获取代码编辑器");
+    logDebug("Found main window, attempting to get code editor");
 
     // 获取 CodeTabWidget
-    CodeTabWidget *codeTab = parent->findChild<CodeTabWidget *>();
+    CodeTabWidget *codeTab = parent->findChild<CodeTabWidget*>();
     if (!codeTab) {
         logDebug("无法找到代码编辑器");
-        QMessageBox::warning(this, tr("无法访问编辑器"), tr("无法找到代码编辑器，无法插入代码。"));
+        QMessageBox::warning(this, tr("无法访问编辑器"),
+            tr("无法找到代码编辑器，无法插入代码。"));
         return;
     }
 
@@ -497,21 +494,23 @@ void AIAssistantWidget::onInsertCodeClicked() {
 
 void AIAssistantWidget::onSetApiKeyClicked() {
     bool ok;
-    QString apiKey = QInputDialog::getText(
-            this, tr("设置 API 密钥"), tr("请输入 DeepSeek API 密钥:"), QLineEdit::Normal,
-            AIClient::getInstance().hasApiKey() ? "********" : "", &ok);
+    QString apiKey = QInputDialog::getText(this, tr("设置 API 密钥"),
+        tr("请输入 DeepSeek API 密钥:"), QLineEdit::Normal,
+        AIClient::getInstance().hasApiKey() ? "********" : "", &ok);
 
     if (ok && !apiKey.isEmpty()) {
         AIClient::getInstance().setApiKey(apiKey);
-        QMessageBox::information(this, tr("API 密钥已设置"), tr("DeepSeek API 密钥已成功设置。"));
+        QMessageBox::information(this, tr("API 密钥已设置"),
+            tr("DeepSeek API 密钥已成功设置。"));
     }
 }
 
-void AIAssistantWidget::onMessageAdded(const AIMessage &message) { displayMessage(message); }
+void AIAssistantWidget::onMessageAdded(const AIMessage &message) {
+    displayMessage(message);
+}
 
 QString AIAssistantWidget::extractCodeFromMarkdown(const QString &markdown) {
-    logDebug("尝试从Markdown提取代码，Markdown长度: " + QString::number(markdown.length()) +
-             " 字符");
+    logDebug("尝试从Markdown提取代码，Markdown长度: " + QString::number(markdown.length()) + " 字符");
 
     // 提取代码块，格式为 ```cpp ... ```
     QRegularExpression codeBlockRegex("```cpp\\s*([\\s\\S]*?)```");
@@ -545,7 +544,7 @@ void AIAssistantWidget::insertGeneratedCode(CodeTabWidget *codeTabWidget) {
     if (generatedCode.isEmpty()) {
         logDebug("没有可插入的代码");
         QMessageBox::warning(this, tr("没有可插入的代码"),
-                             tr("请先生成示例代码或从对话中选择代码。"));
+            tr("请先生成示例代码或从对话中选择代码。"));
         return;
     }
 
@@ -554,7 +553,8 @@ void AIAssistantWidget::insertGeneratedCode(CodeTabWidget *codeTabWidget) {
     CodeEditWidget *editor = codeTabWidget->curEdit();
     if (!editor) {
         logDebug("没有打开的编辑器");
-        QMessageBox::warning(this, tr("没有打开的编辑器"), tr("请先打开一个代码文件。"));
+        QMessageBox::warning(this, tr("没有打开的编辑器"),
+            tr("请先打开一个代码文件。"));
         return;
     }
 
@@ -565,7 +565,8 @@ void AIAssistantWidget::insertGeneratedCode(CodeTabWidget *codeTabWidget) {
     logDebug("代码已插入到编辑器");
 
     // 显示成功消息
-    QMessageBox::information(this, tr("代码已插入"), tr("代码已成功插入到编辑器中。"));
+    QMessageBox::information(this, tr("代码已插入"),
+        tr("代码已成功插入到编辑器中。"));
     logDebug("显示成功消息");
 }
 
@@ -622,7 +623,7 @@ bool AIAssistantWidget::getProblemInfoFromPreview(OpenJudgePreviewWidget *previe
     }
 
     // 获取标题
-    QLabel *titleLabel = preview->findChild<QLabel *>();
+    QLabel *titleLabel = preview->findChild<QLabel*>();
     if (!titleLabel) {
         logDebug("无法找到标题标签");
         return false;
@@ -639,7 +640,7 @@ bool AIAssistantWidget::getProblemInfoFromPreview(OpenJudgePreviewWidget *previe
 
     // 尝试获取题目内容
     // 查找预览窗口中的文本编辑器，它应该包含题目内容
-    QList<QTextEdit *> textEdits = preview->findChildren<QTextEdit *>();
+    QList<QTextEdit*> textEdits = preview->findChildren<QTextEdit*>();
     if (textEdits.isEmpty()) {
         logDebug("无法找到包含题目内容的文本编辑器");
         return false;
@@ -647,11 +648,10 @@ bool AIAssistantWidget::getProblemInfoFromPreview(OpenJudgePreviewWidget *previe
 
     // 获取第一个可见的文本编辑器的内容
     QString content;
-    for (QTextEdit *textEdit: textEdits) {
+    for (QTextEdit* textEdit : textEdits) {
         if (textEdit->isVisible()) {
             content = textEdit->toPlainText();
-            logDebug("从可见的文本编辑器获取到内容，长度: " + QString::number(content.length()) +
-                     " 字符");
+            logDebug("从可见的文本编辑器获取到内容，长度: " + QString::number(content.length()) + " 字符");
             break;
         }
     }
@@ -659,7 +659,7 @@ bool AIAssistantWidget::getProblemInfoFromPreview(OpenJudgePreviewWidget *previe
     if (content.isEmpty()) {
         logDebug("无法获取题目内容");
         // 尝试获取HTML内容
-        for (QTextEdit *textEdit: textEdits) {
+        for (QTextEdit* textEdit : textEdits) {
             if (textEdit->isVisible()) {
                 content = textEdit->toHtml();
                 logDebug("尝试获取HTML内容，长度: " + QString::number(content.length()) + " 字符");
@@ -682,22 +682,27 @@ bool AIAssistantWidget::getProblemInfoFromPreview(OpenJudgePreviewWidget *previe
     QString sampleInput;
     QString sampleOutput;
 
-    enum ParseState { None, Description, Input, Output, SampleInput, SampleOutput };
+    enum ParseState {
+        None,
+        Description,
+        Input,
+        Output,
+        SampleInput,
+        SampleOutput
+    };
 
     ParseState state = None;
 
-    for (const QString &line: lines) {
+    for (const QString &line : lines) {
         if (line.contains("题目描述", Qt::CaseInsensitive)) {
             state = Description;
             logDebug("找到题目描述部分");
             continue;
-        } else if (line.contains("输入", Qt::CaseInsensitive) &&
-                   !line.contains("样例", Qt::CaseInsensitive)) {
+        } else if (line.contains("输入", Qt::CaseInsensitive) && !line.contains("样例", Qt::CaseInsensitive)) {
             state = Input;
             logDebug("找到输入描述部分");
             continue;
-        } else if (line.contains("输出", Qt::CaseInsensitive) &&
-                   !line.contains("样例", Qt::CaseInsensitive)) {
+        } else if (line.contains("输出", Qt::CaseInsensitive) && !line.contains("样例", Qt::CaseInsensitive)) {
             state = Output;
             logDebug("找到输出描述部分");
             continue;
@@ -762,7 +767,8 @@ QCoro::Task<bool> AIAssistantWidget::getProblemInfoFromUrl(const QUrl &url) {
     if (!result.has_value()) {
         QString errorMsg = result.error();
         logDebug("获取题目失败: " + errorMsg);
-        QMessageBox::warning(this, tr("获取题目失败"), tr("无法获取题目信息：%1").arg(errorMsg));
+        QMessageBox::warning(this, tr("获取题目失败"),
+            tr("无法获取题目信息：%1").arg(errorMsg));
         co_return false;
     }
 
@@ -789,35 +795,36 @@ QCoro::Task<bool> AIAssistantWidget::getProblemInfoFromUrl(const QUrl &url) {
 }
 
 QString AIAssistantWidget::getFullProblemDescription() const {
-    // 构建完整的题目信息
+    // Build complete problem information
     QString fullDescription = currentDescription;
 
     if (!currentInputDesc.isEmpty()) {
-        fullDescription += "\n\n输入描述：\n" + currentInputDesc;
+        fullDescription += "\n\nInput Description:\n" + currentInputDesc;
     }
     if (!currentOutputDesc.isEmpty()) {
-        fullDescription += "\n\n输出描述：\n" + currentOutputDesc;
+        fullDescription += "\n\nOutput Description:\n" + currentOutputDesc;
     }
     if (!currentSampleInput.isEmpty()) {
-        fullDescription += "\n\n样例输入：\n" + currentSampleInput;
+        fullDescription += "\n\nSample Input:\n" + currentSampleInput;
     }
     if (!currentSampleOutput.isEmpty()) {
-        fullDescription += "\n\n样例输出：\n" + currentSampleOutput;
+        fullDescription += "\n\nSample Output:\n" + currentSampleOutput;
     }
 
     return fullDescription;
 }
 
 void AIAssistantWidget::showCurrentProblemInfo() {
-    logDebug("显示当前题目信息");
+    logDebug("Displaying current problem information");
 
     if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
-        logDebug("题目信息不完整，无法显示");
-        QMessageBox::warning(this, tr("题目信息不完整"), tr("当前没有完整的题目信息可以显示。"));
+        logDebug("Problem information incomplete, cannot display");
+        QMessageBox::warning(this, tr("题目信息不完整"),
+            tr("当前没有完整的题目信息可以显示。"));
         return;
     }
 
-    // 构建题目信息显示文本
+    // Build problem information display text
     QString infoText = tr("当前题目信息：\n\n");
     infoText += tr("标题：%1\n\n").arg(currentTitle);
     infoText += tr("描述：\n%1\n\n").arg(currentDescription);
@@ -838,31 +845,31 @@ void AIAssistantWidget::showCurrentProblemInfo() {
         infoText += tr("样例输出：\n%1\n\n").arg(currentSampleOutput);
     }
 
-    // 显示题目信息
+    // Display problem information
     AIMessage systemMsg(AIMessageType::SYSTEM, infoText);
     displayMessage(systemMsg);
-    logDebug("题目信息已显示");
+    logDebug("Problem information displayed");
 }
 
 void AIAssistantWidget::logDebug(const QString &message) const {
-    qDebug() << "[AI助手调试]" << message;
+    qDebug() << "[AI Assistant Debug]" << message;
 }
 
 void AIAssistantWidget::logCurrentProblemInfo() const {
-    qDebug() << "[AI助手调试] 当前题目信息:";
-    qDebug() << "[AI助手调试]   标题:" << (currentTitle.isEmpty() ? "空" : currentTitle);
-    qDebug() << "[AI助手调试]   描述长度:" << currentDescription.length() << "字符";
-    qDebug() << "[AI助手调试]   输入描述长度:" << currentInputDesc.length() << "字符";
-    qDebug() << "[AI助手调试]   输出描述长度:" << currentOutputDesc.length() << "字符";
-    qDebug() << "[AI助手调试]   样例输入长度:" << currentSampleInput.length() << "字符";
-    qDebug() << "[AI助手调试]   样例输出长度:" << currentSampleOutput.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Current problem info:";
+    qDebug() << "[AI Assistant Debug]   Title:" << (currentTitle.isEmpty() ? "empty" : currentTitle);
+    qDebug() << "[AI Assistant Debug]   Description length:" << currentDescription.length() << "characters";
+    qDebug() << "[AI Assistant Debug]   Input description length:" << currentInputDesc.length() << "characters";
+    qDebug() << "[AI Assistant Debug]   Output description length:" << currentOutputDesc.length() << "characters";
+    qDebug() << "[AI Assistant Debug]   Sample input length:" << currentSampleInput.length() << "characters";
+    qDebug() << "[AI Assistant Debug]   Sample output length:" << currentSampleOutput.length() << "characters";
 }
 
 void AIAssistantWidget::sendAIRequest(const QString &prompt, const QString &requestType) {
-    qDebug() << "[AI助手调试] 发送" << requestType << "请求，长度:" << prompt.length() << "字符";
+    qDebug() << "[AI Assistant Debug] Sending" << requestType << "request, length:" << prompt.length() << "characters";
 
-    // 使用同步方法发送请求
+    // Use synchronous method to send request
     AIClient::getInstance().sendRequestSync(prompt);
 
-    qDebug() << "[AI助手调试]" << requestType << "请求已发送，等待回调";
+    qDebug() << "[AI Assistant Debug]" << requestType << "request sent, waiting for callback";
 }
