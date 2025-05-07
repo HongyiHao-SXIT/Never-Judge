@@ -107,3 +107,65 @@ QCoro::Task<std::expected<QString, QString>> AIClient::sendRequest(
 
     co_return responseText;
 }
+
+void AIClient::sendRequestSync(
+    const QString &prompt,
+    int maxTokens,
+    double temperature
+) {
+    if (!hasApiKey()) {
+        emit requestCompleted(false, "API 密钥未设置");
+        return;
+    }
+
+    QNetworkRequest request;
+    request.setUrl(QUrl(apiEndpoint));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey).toUtf8());
+
+    QJsonObject requestJson = buildRequestJson(prompt, maxTokens, temperature);
+    QByteArray requestData = QJsonDocument(requestJson).toJson();
+
+    // 创建网络请求
+    QNetworkReply *reply = nam.post(request, requestData);
+
+    // 连接信号
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        if (reply->error()) {
+            QString errorMsg = reply->errorString();
+            emit requestCompleted(false, errorMsg);
+            reply->deleteLater();
+            return;
+        }
+
+        QByteArray responseData = reply->readAll();
+        reply->deleteLater();
+
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(responseData, &parseError);
+
+        if (parseError.error != QJsonParseError::NoError) {
+            emit requestCompleted(false, "JSON 解析错误: " + parseError.errorString());
+            return;
+        }
+
+        QJsonObject responseJson = doc.object();
+
+        // 检查是否有错误
+        if (responseJson.contains("error")) {
+            QString errorMsg = responseJson["error"].toObject()["message"].toString();
+            emit requestCompleted(false, errorMsg);
+            return;
+        }
+
+        // 提取生成的文本
+        QJsonArray choices = responseJson["choices"].toArray();
+        if (choices.isEmpty()) {
+            emit requestCompleted(false, "API 返回的响应中没有内容");
+            return;
+        }
+
+        QString responseText = choices[0].toObject()["message"].toObject()["content"].toString();
+        emit requestCompleted(true, responseText);
+    });
+}

@@ -39,6 +39,9 @@ public:
                          const QString &sampleInput, const QString &sampleOutput);
     void setUserCode(const QString &code);
 
+    // 显示当前题目信息
+    void showCurrentProblemInfo();
+
 private slots:
     void onSendClicked();
     void onAnalyzeClicked();
@@ -47,8 +50,12 @@ private slots:
     void onClearClicked();
     void onInsertCodeClicked();
     void onSetApiKeyClicked();
+    void onShowProblemClicked();
     void onMessageAdded(const AIMessage &message);
     void onRequestCompleted(bool success, const QString &response);
+
+    // 主动获取题目信息
+    bool tryGetProblemInfo();
 
 private:
     void setupUI();
@@ -62,6 +69,13 @@ private:
     bool getProblemInfoFromPreview(OpenJudgePreviewWidget *preview);
     QCoro::Task<bool> getProblemInfoFromUrl(const QUrl &url);
     QString getFullProblemDescription() const; // 获取完整的题目描述
+
+    // 发送AI请求的辅助函数
+    void sendAIRequest(const QString &prompt, const QString &requestType);
+
+    // 调试日志辅助函数
+    void logDebug(const QString &message) const;
+    void logCurrentProblemInfo() const; // 记录当前题目信息
 
     // UI组件
     QWidget *mainWidget = nullptr;
@@ -78,6 +92,7 @@ private:
     QPushButton *codeButton = nullptr;
     QPushButton *debugButton = nullptr;
     QPushButton *insertCodeButton = nullptr;
+    QPushButton *showProblemButton = nullptr;
     QPushButton *setApiKeyButton = nullptr;
     QProgressBar *progressBar = nullptr;
 

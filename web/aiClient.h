@@ -11,7 +11,7 @@
 
 /**
  * @brief DeepSeek API 客户端类
- * 
+ *
  * 负责与 DeepSeek API 通信，发送请求和处理响应
  */
 class AIClient : public QObject {
@@ -46,13 +46,25 @@ public:
     bool hasApiKey() const;
 
     /**
-     * @brief 向 DeepSeek API 发送请求
+     * @brief 向 DeepSeek API 发送请求（协程版本）
      * @param prompt 提示词
      * @param maxTokens 最大生成 token 数
      * @param temperature 温度参数
      * @return 成功返回响应文本，失败返回错误信息
      */
     QCoro::Task<std::expected<QString, QString>> sendRequest(
+        const QString &prompt,
+        int maxTokens = 2048,
+        double temperature = 0.7
+    );
+
+    /**
+     * @brief 向 DeepSeek API 发送请求（同步版本）
+     * @param prompt 提示词
+     * @param maxTokens 最大生成 token 数
+     * @param temperature 温度参数
+     */
+    void sendRequestSync(
         const QString &prompt,
         int maxTokens = 2048,
         double temperature = 0.7
