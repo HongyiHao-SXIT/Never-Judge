@@ -1,6 +1,7 @@
 #include "lsp.h"
 
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <qcoreapplication.h>
 #include <qcoro/qcoroprocess.h>
 

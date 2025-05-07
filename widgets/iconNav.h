@@ -46,6 +46,7 @@ private slots:
     void onLoginOJ();
     void onTogglePreview(bool checked);
     void onOpenSetting();
+    void onToggleAIAssistant(bool checked);
 
 public:
     explicit RightIconNavigateWidget(QWidget *parent = nullptr);
@@ -54,6 +55,7 @@ signals:
     void loginOJ();
     void togglePreview(bool show);
     void openSetting();
+    void toggleAIAssistant(bool show);
 };
 
 #endif // ICON_NAV_H

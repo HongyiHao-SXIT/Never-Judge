@@ -3,6 +3,8 @@
 #include <QDir>
 #include <QIcon>
 #include <QStandardPaths>
+#include <QJsonDocument>
+#include <QJsonParseError>
 #include <qcoro/qcoroprocess.h>
 
 QFile loadRes(const QString &path) { return QFile(":/res/" + path); }
