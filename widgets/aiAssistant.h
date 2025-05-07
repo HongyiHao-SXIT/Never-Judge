@@ -1,28 +1,29 @@
 #ifndef AIASSISTANTWIDGET_H
 #define AIASSISTANTWIDGET_H
 
-#include <QDockWidget>
-#include <QString>
+#include <QApplication>
 #include <QCoro/Task>
-#include <QJsonObject>
+#include <QDockWidget>
+#include <QHBoxLayout>
+#include <QInputDialog>
 #include <QJsonArray>
-#include <QTextEdit>
-#include <QTextBrowser>
-#include <QPushButton>
+#include <QJsonObject>
+#include <QLabel>
+#include <QMessageBox>
+#include <QMutex>
 #include <QPlainTextEdit>
 #include <QProgressBar>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QApplication>
+#include <QPushButton>
 #include <QScrollBar>
-#include <QMessageBox>
-#include <QInputDialog>
+#include <QString>
+#include <QTextBrowser>
+#include <QTextEdit>
 #include <QUrl>
+#include <QVBoxLayout>
 #include "../ide/aiChat.h"
 #include "../web/aiClient.h"
-#include "../widgets/preview.h"
 #include "../web/problemCrawler.h"
+#include "../widgets/preview.h"
 
 // 前向声明
 class CodeTabWidget;
@@ -106,6 +107,7 @@ private:
     QString currentSampleOutput;
     QString currentUserCode;
     QString generatedCode;
+    QString historyMarkdown;
 };
 
 #endif // AIASSISTANTWIDGET_H
