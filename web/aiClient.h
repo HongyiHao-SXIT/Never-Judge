@@ -26,10 +26,10 @@ public:
     // Get AIClient singleton instance
     static AIClient &getInstance();
 
-    // Set API key
+    // Set the API key
     void setApiKey(const QString &key);
 
-    // Check if API key is set
+    // Check if the API key is set
     bool hasApiKey() const;
 
     // Send request to DeepSeek API (coroutine version)

@@ -64,7 +64,7 @@ private:
     void displayMessage(const AIMessage &message);
     void displayMarkdown(const QString &text, bool isUser);
     void setProgressVisible(bool visible);
-    QString extractCodeFromMarkdown(const QString &markdown);
+    static QString extractCodeFromMarkdown(const QString &markdown);
     QString getCurrentCode() const;
     void insertGeneratedCode(CodeTabWidget *codeTabWidget);
     bool getProblemInfoFromPreview(OpenJudgePreviewWidget *preview);
