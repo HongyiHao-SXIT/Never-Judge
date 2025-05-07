@@ -35,10 +35,7 @@ public:
     explicit AIAssistantWidget(CodeTabWidget* codeTab, QWidget *parent = nullptr);
     ~AIAssistantWidget() override;
 
-    void setProblemInfo(const QString &title, const QString &description,
-                         const QString &inputDesc, const QString &outputDesc,
-                         const QString &sampleInput, const QString &sampleOutput);
-    void setUserCode(const QString &code);
+    void setUserCode(const QString &code) const;
 
     // Display current problem information
     void showCurrentProblemInfo();
@@ -63,7 +60,7 @@ private:
     void connectSignals();
     void displayMessage(const AIMessage &message);
     void displayMarkdown(const QString &text, bool isUser);
-    void setProgressVisible(bool visible);
+    void setProgressVisible(bool visible) const;
     static QString extractCodeFromMarkdown(const QString &markdown);
     QString getCurrentCode() const;
     void insertGeneratedCode(CodeTabWidget *codeTabWidget);
@@ -72,10 +69,10 @@ private:
     QString getFullProblemDescription() const;
 
     // Helper function to send AI request
-    void sendAIRequest(const QString &prompt, const QString &requestType);
+    static void sendAIRequest(const QString &prompt, const QString &requestType);
 
     // Debug logging helper functions
-    void logDebug(const QString &message) const;
+    static void logDebug(const QString &message) ;
     void logCurrentProblemInfo() const;
 
     // UI components

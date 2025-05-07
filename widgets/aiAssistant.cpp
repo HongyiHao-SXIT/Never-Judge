@@ -34,7 +34,6 @@ AIAssistantWidget::AIAssistantWidget(CodeTabWidget *codeTab, QWidget *parent) :
 }
 
 AIAssistantWidget::~AIAssistantWidget() {
-    // 清理资源
 }
 
 void AIAssistantWidget::setupUI() {
@@ -206,7 +205,7 @@ void AIAssistantWidget::displayMarkdown(const QString &text, bool isUser) {
     scrollBar->setValue(scrollBar->maximum());
 }
 
-void AIAssistantWidget::setProgressVisible(bool visible) {
+void AIAssistantWidget::setProgressVisible(bool visible) const {
     progressBar->setVisible(visible);
     sendButton->setEnabled(!visible);
     clearButton->setEnabled(!visible);
@@ -216,22 +215,7 @@ void AIAssistantWidget::setProgressVisible(bool visible) {
     userInput->setEnabled(!visible);
 }
 
-void AIAssistantWidget::setProblemInfo(const QString &title, const QString &description,
-                                       const QString &inputDesc, const QString &outputDesc,
-                                       const QString &sampleInput, const QString &sampleOutput) {
-    currentTitle = title;
-    currentDescription = description;
-    currentInputDesc = inputDesc;
-    currentOutputDesc = outputDesc;
-    currentSampleInput = sampleInput;
-    currentSampleOutput = sampleOutput;
-
-    QString message = tr("已加载题目: %1").arg(title);
-    AIMessage systemMsg(AIMessageType::SYSTEM, message);
-    displayMessage(systemMsg);
-}
-
-void AIAssistantWidget::setUserCode(const QString &code) {
+void AIAssistantWidget::setUserCode(const QString &code) const {
     userInput->setPlainText(code);
 }
 
@@ -409,8 +393,6 @@ void AIAssistantWidget::onShowProblemClicked() {
 }
 
 void AIAssistantWidget::onInsertCodeClicked() {
-    logDebug("Insert code button clicked");
-
     QWidget *parent = this;
     while (parent && !parent->inherits("IDEMainWindow")) {
         parent = parent->parentWidget();
@@ -424,15 +406,12 @@ void AIAssistantWidget::onInsertCodeClicked() {
 
     logDebug("Found main window, attempting to get code editor");
 
-    // 获取 CodeTabWidget
-    CodeTabWidget *codeTab = parent->findChild<CodeTabWidget *>();
+    auto *codeTab = parent->findChild<CodeTabWidget *>();
     if (!codeTab) {
         logDebug("无法找到代码编辑器");
         QMessageBox::warning(this, tr("无法访问编辑器"), tr("无法找到代码编辑器，无法插入代码。"));
         return;
     }
-
-    logDebug("找到代码编辑器，准备插入代码");
 
     insertGeneratedCode(codeTab);
 }
@@ -712,7 +691,7 @@ void AIAssistantWidget::showCurrentProblemInfo() {
     logDebug("Problem information displayed");
 }
 
-void AIAssistantWidget::logDebug(const QString &message) const {
+void AIAssistantWidget::logDebug(const QString &message) {
     qDebug() << "[AI Assistant Debug]" << message;
 }
 
