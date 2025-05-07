@@ -31,7 +31,6 @@ set(PROJECT_SOURCES
         web/crawl.cpp
         web/parse.cpp
         web/aiClient.cpp
-        web/problemCrawler.cpp
         res/resource.qrc
         ide/language.cpp
         ide/project.cpp

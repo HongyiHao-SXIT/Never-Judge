@@ -1,0 +1,98 @@
+/* AI Assistant Widget Styles */
+
+/* Message role styles */
+.user-role {
+    color: #569CD6;
+    font-weight: bold;
+    font-size: large;
+}
+
+.assistant-role {
+    color: #C586C0;
+    font-weight: bold;
+    font-size: large;
+}
+
+/* Main widget background */
+#aiAssistantMainWidget {
+    background-color: #1E1E1E;
+}
+
+/* Conversation view */
+#conversationView {
+    background-color: #1E1E1E;
+    color: #D4D4D4;
+    border: 1px solid #3F3F46;
+    border-radius: 4px;
+}
+
+/* User input */
+#userInput {
+    background-color: #252526;
+    color: #D4D4D4;
+    border: 1px solid #3F3F46;
+    border-radius: 4px;
+}
+
+/* Regular button style */
+.regularButton {
+    background-color: #3E3E42;
+    color: #D4D4D4;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+}
+
+.regularButton:hover {
+    background-color: #505050;
+}
+
+.regularButton:pressed {
+    background-color: #2A2D2E;
+}
+
+.regularButton:disabled {
+    background-color: #2D2D30;
+    color: #6D6D6D;
+}
+
+/* Highlight button style */
+.highlightButton {
+    background-color: #3574F0;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+}
+
+.highlightButton:hover {
+    background-color: #4A85F5;
+}
+
+.highlightButton:pressed {
+    background-color: #2A65D1;
+}
+
+.highlightButton:disabled {
+    background-color: #2D2D30;
+    color: #6D6D6D;
+}
+
+/* API key label */
+#apiKeyLabel {
+    color: #D4D4D4;
+}
+
+/* Progress bar */
+#progressBar {
+    background-color: #2D2D30;
+    color: #D4D4D4;
+    border: 1px solid #3F3F46;
+    border-radius: 3px;
+    text-align: center;
+}
+
+#progressBar::chunk {
+    background-color: #569CD6;
+    border-radius: 2px;
+}

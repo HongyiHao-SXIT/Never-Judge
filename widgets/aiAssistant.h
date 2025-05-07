@@ -22,7 +22,7 @@
 #include <QVBoxLayout>
 #include "../ide/aiChat.h"
 #include "../web/aiClient.h"
-#include "../web/problemCrawler.h"
+#include "../web/parse.h"
 #include "../widgets/preview.h"
 
 // Forward declaration
@@ -96,12 +96,7 @@ private:
 
     // Data members
     CodeTabWidget* m_codeTab = nullptr;
-    QString currentTitle;
-    QString currentDescription;
-    QString currentInputDesc;
-    QString currentOutputDesc;
-    QString currentSampleInput;
-    QString currentSampleOutput;
+    OJProblemDetail currentProblem;
     QString currentUserCode;
     QString generatedCode;
     QString historyMarkdown;

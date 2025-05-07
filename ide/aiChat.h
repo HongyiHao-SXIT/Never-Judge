@@ -57,34 +57,7 @@ public:
     // Clear chat history
     void clearMessages();
 
-    // Generate problem analysis prompt
-    QString generateProblemAnalysisPrompt(
-        const QString &title,
-        const QString &description,
-        const QString &inputDesc,
-        const QString &outputDesc,
-        const QString &sampleInput,
-        const QString &sampleOutput
-    );
 
-    // Generate code example prompt
-    QString generateCodeExamplePrompt(
-        const QString &title,
-        const QString &description,
-        const QString &inputDesc,
-        const QString &outputDesc,
-        const QString &sampleInput,
-        const QString &sampleOutput
-    );
-
-    // Generate debug prompt
-    QString generateDebugPrompt(
-        const QString &title,
-        const QString &description,
-        const QString &sampleInput,
-        const QString &sampleOutput,
-        const QString &userCode
-    );
 
 signals:
     // Message added signal
