@@ -3,7 +3,7 @@
 #include "../util/file.h"
 #include "../util/script.h"
 
-// 初始化静态实例指针
+// Initialize static instance pointer
 ProblemCrawler* ProblemCrawler::instance = nullptr;
 
 ProblemCrawler::ProblemCrawler(QObject *parent) : QObject(parent) {
@@ -17,33 +17,33 @@ ProblemCrawler &ProblemCrawler::getInstance() {
 }
 
 QCoro::Task<std::expected<ProblemDetail, QString>> ProblemCrawler::getProblemDetail(const QUrl &url) {
-    // 使用现有的爬虫获取页面内容
+    // Use existing crawler to get page content
     auto response = co_await Crawler::instance().get(url);
-    
+
     if (!response.has_value()) {
         co_return std::unexpected(response.error());
     }
-    
-    // 创建临时文件存储页面内容
+
+    // Create temporary file to store page content
     auto tempFile = TempFiles::create("problem_detail", response.value());
     tempFile->close();
-    
-    // 使用 Python 脚本解析页面内容
+
+    // Use Python script to parse page content
     QFile script = loadRes("script/problem_detail.py");
     auto output = co_await runPythonScript(script, QStringList() << tempFile->fileName());
-    
+
     if (!output.success || output.exitCode != 0) {
         co_return std::unexpected(output.stdErr);
     }
-    
-    // 解析脚本输出
-    // 输出格式：标题|描述|输入描述|输出描述|样例输入|样例输出|提示
+
+    // Parse script output
+    // Output format: title|description|inputDesc|outputDesc|sampleInput|sampleOutput|hint
     QStringList parts = output.stdOut.split("|", Qt::SkipEmptyParts);
-    
+
     if (parts.size() < 6) {
-        co_return std::unexpected("解析题目详情失败：输出格式不正确");
+        co_return std::unexpected("Failed to parse problem details: incorrect output format");
     }
-    
+
     ProblemDetail detail;
     detail.title = parts[0];
     detail.description = parts[1];
@@ -51,13 +51,13 @@ QCoro::Task<std::expected<ProblemDetail, QString>> ProblemCrawler::getProblemDet
     detail.outputDesc = parts[3];
     detail.sampleInput = parts[4];
     detail.sampleOutput = parts[5];
-    
+
     if (parts.size() > 6) {
         detail.hint = parts[6];
     }
-    
+
     detail.sourceUrl = url.toString();
-    
+
     co_return detail;
 }
 
@@ -65,9 +65,9 @@ QCoro::Task<std::expected<ProblemDetail, QString>> ProblemCrawler::getProblemDet
     const QString &contestId,
     const QString &problemId
 ) {
-    // 构造题目 URL
+    // Construct problem URL
     QUrl url(QString("http://cxsjsx.openjudge.cn/%1/problem/%2/").arg(contestId, problemId));
-    
-    // 调用 URL 版本的方法
+
+    // Call URL version of the method
     co_return co_await getProblemDetail(url);
 }
