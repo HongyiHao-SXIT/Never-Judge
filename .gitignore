@@ -62,3 +62,6 @@ __pycache__/
 *.rej
 *.sublime-project
 *.sublime-workspace
+
+#wsl files
+*.Identifier
