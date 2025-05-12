@@ -11,6 +11,7 @@
 #include "../ide/aiChat.h"
 #include "../web/aiClient.h"
 #include "../widgets/code.h"
+#include "../util/file.h"
 
 AIAssistantWidget::AIAssistantWidget(CodeTabWidget *codeTab, QWidget *parent) :
     QDockWidget(tr("AI 刷题助手"), parent) {
@@ -37,41 +38,29 @@ AIAssistantWidget::~AIAssistantWidget() {
 }
 
 void AIAssistantWidget::setupUI() {
+    // Load CSS stylesheet
+    QString stylesheet = loadText("qss/aiAssistant.css");
+
     mainWidget = new QWidget(this);
-    mainWidget->setStyleSheet("background-color: #1E1E1E;");
+    mainWidget->setObjectName("aiAssistantMainWidget");
     mainLayout = new QVBoxLayout(mainWidget);
 
     conversationView = new QTextBrowser(mainWidget);
+    conversationView->setObjectName("conversationView");
     conversationView->setOpenLinks(false);
     conversationView->setOpenExternalLinks(true);
     conversationView->setTextInteractionFlags(Qt::TextBrowserInteraction);
-    conversationView->setStyleSheet("background-color: #1E1E1E; color: #D4D4D4; border: 1px solid "
-                                    "#3F3F46; border-radius: 4px;");
 
     QFont font("Microsoft YaHei", 10);
     conversationView->setFont(font);
 
     userInput = new QTextEdit(mainWidget);
+    userInput->setObjectName("userInput");
     userInput->setPlaceholderText(tr("输入你的问题..."));
     userInput->setMaximumHeight(100);
     userInput->setFont(font);
-    userInput->setStyleSheet("background-color: #252526; color: #D4D4D4; border: 1px solid "
-                             "#3F3F46; border-radius: 4px;");
 
     buttonLayout = new QHBoxLayout();
-
-    QString buttonStyle = "QPushButton { background-color: #3E3E42; color: #D4D4D4; border: none; "
-                          "border-radius: 4px; padding: 6px 12px; }"
-                          "QPushButton:hover { background-color: #505050; }"
-                          "QPushButton:pressed { background-color: #2A2D2E; }"
-                          "QPushButton:disabled { background-color: #2D2D30; color: #6D6D6D; }";
-
-    QString highlightButtonStyle =
-            "QPushButton { background-color: #3574F0; color: #FFFFFF; border: none; border-radius: "
-            "4px; padding: 6px 12px; }"
-            "QPushButton:hover { background-color: #4A85F5; }"
-            "QPushButton:pressed { background-color: #2A65D1; }"
-            "QPushButton:disabled { background-color: #2D2D30; color: #6D6D6D; }";
 
     sendButton = new QPushButton(tr("发送"), mainWidget);
     clearButton = new QPushButton(tr("清空"), mainWidget);
@@ -82,13 +71,14 @@ void AIAssistantWidget::setupUI() {
     insertCodeButton = new QPushButton(tr("插入代码"), mainWidget);
     insertCodeButton->setVisible(false); // show when the code is available
 
-    sendButton->setStyleSheet(buttonStyle);
-    clearButton->setStyleSheet(buttonStyle);
-    analyzeButton->setStyleSheet(highlightButtonStyle);
-    codeButton->setStyleSheet(highlightButtonStyle);
-    debugButton->setStyleSheet(buttonStyle);
-    showProblemButton->setStyleSheet(buttonStyle);
-    insertCodeButton->setStyleSheet(buttonStyle);
+    // Apply CSS classes to buttons
+    sendButton->setProperty("class", "regularButton");
+    clearButton->setProperty("class", "regularButton");
+    analyzeButton->setProperty("class", "highlightButton");
+    codeButton->setProperty("class", "highlightButton");
+    debugButton->setProperty("class", "regularButton");
+    showProblemButton->setProperty("class", "regularButton");
+    insertCodeButton->setProperty("class", "regularButton");
 
     buttonLayout->addWidget(showProblemButton);
     buttonLayout->addWidget(analyzeButton);
@@ -102,34 +92,27 @@ void AIAssistantWidget::setupUI() {
     settingsLayout = new QHBoxLayout();
 
     apiKeyLabel = new QLabel(tr("API 密钥:"), mainWidget);
-    apiKeyLabel->setStyleSheet("color: #D4D4D4;");
+    apiKeyLabel->setObjectName("apiKeyLabel");
     setApiKeyButton = new QPushButton(tr("设置"), mainWidget);
-    setApiKeyButton->setStyleSheet(buttonStyle);
+    setApiKeyButton->setProperty("class", "regularButton");
 
     settingsLayout->addWidget(apiKeyLabel);
     settingsLayout->addWidget(setApiKeyButton);
     settingsLayout->addStretch();
 
     progressBar = new QProgressBar(mainWidget);
+    progressBar->setObjectName("progressBar");
     progressBar->setRange(0, 0);
     progressBar->setVisible(false);
-    progressBar->setStyleSheet("QProgressBar {"
-                               "   background-color: #2D2D30;"
-                               "   color: #D4D4D4;"
-                               "   border: 1px solid #3F3F46;"
-                               "   border-radius: 3px;"
-                               "   text-align: center;"
-                               "}"
-                               "QProgressBar::chunk {"
-                               "   background-color: #569CD6;"
-                               "   border-radius: 2px;"
-                               "}");
 
     mainLayout->addLayout(settingsLayout);
     mainLayout->addWidget(conversationView);
     mainLayout->addWidget(progressBar);
     mainLayout->addWidget(userInput);
     mainLayout->addLayout(buttonLayout);
+
+    // Apply stylesheet to the widget
+    mainWidget->setStyleSheet(stylesheet);
 
     setWidget(mainWidget);
     resize(400, 600);
@@ -194,8 +177,8 @@ void AIAssistantWidget::displayMessage(const AIMessage &message) {
 }
 
 void AIAssistantWidget::displayMarkdown(const QString &text, bool isUser) {
-    QString roleText = isUser ? "<p style='color: #569CD6;'><b><big>用户</b></big></p>"
-                              : "<p style='color: #C586C0;'><b><big>AI 助手</b></big></p>";
+    QString roleText = isUser ? "<p class='user-role'>用户</p>"
+                              : "<p class='assistant-role'>AI 助手</p>";
     historyMarkdown += roleText;
     historyMarkdown += "\n\n --- \n\n";
     historyMarkdown += text + "<br /><br /><br />";
@@ -270,7 +253,7 @@ void AIAssistantWidget::onAnalyzeClicked() {
 
     tryGetProblemInfo();
 
-    if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
+    if (currentProblem.title.isEmpty() || currentProblem.description.isEmpty()) {
         qDebug() << "[AI Assistant Debug] Problem information incomplete, cannot generate analysis";
         QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
         return;
@@ -286,7 +269,7 @@ void AIAssistantWidget::onAnalyzeClicked() {
                              "3. 可能的边界情况和注意事项\n"
                              "4. 时间复杂度和空间复杂度分析\n\n"
                              "题目：%1\n\n%2")
-                             .arg(currentTitle, fullDescription);
+                             .arg(currentProblem.title, fullDescription);
 
     qDebug() << "[AI Assistant Debug] Generated problem analysis prompt, length:" << prompt.length()
              << "characters";
@@ -305,7 +288,7 @@ void AIAssistantWidget::onCodeClicked() {
 
     tryGetProblemInfo();
 
-    if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
+    if (currentProblem.title.isEmpty() || currentProblem.description.isEmpty()) {
         qDebug() << "[AI Assistant Debug] Problem information incomplete, cannot generate code";
         QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
         return;
@@ -322,7 +305,7 @@ void AIAssistantWidget::onCodeClicked() {
                     "3. 使用合适的数据结构和算法\n"
                     "4. 遵循良好的编程实践\n\n"
                     "题目：%1\n\n%2")
-                    .arg(currentTitle, fullDescription);
+                    .arg(currentProblem.title, fullDescription);
 
     qDebug() << "[AI Assistant Debug] Generated example code prompt, length:" << prompt.length()
              << "characters";
@@ -350,7 +333,7 @@ void AIAssistantWidget::onDebugClicked() {
 
     tryGetProblemInfo();
 
-    if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
+    if (currentProblem.title.isEmpty() || currentProblem.description.isEmpty()) {
         qDebug() << "[AI Assistant Debug] Problem information incomplete, cannot generate debug "
                     "analysis";
         QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
@@ -368,7 +351,7 @@ void AIAssistantWidget::onDebugClicked() {
                              "4. 性能优化建议\n\n"
                              "题目：%1\n\n%2\n\n"
                              "代码：\n```cpp\n%3\n```")
-                             .arg(currentTitle, fullDescription, userCode);
+                             .arg(currentProblem.title, fullDescription, userCode);
 
     qDebug() << "[AI Assistant Debug] Generated debug prompt, length:" << prompt.length()
              << "characters";
@@ -431,21 +414,37 @@ void AIAssistantWidget::onSetApiKeyClicked() {
 void AIAssistantWidget::onMessageAdded(const AIMessage &message) { displayMessage(message); }
 
 QString AIAssistantWidget::extractCodeFromMarkdown(const QString &markdown) {
-    static QRegularExpression codeBlockRegex(R"(```cpp\s*([\s\S]*?)```)");
-    QRegularExpressionMatch match = codeBlockRegex.match(markdown);
+    // 首先尝试匹配C++代码块
+    static QRegularExpression cppCodeBlockRegex(R"(```cpp\s*([\s\S]*?)```)");
+    QRegularExpressionMatch cppMatch = cppCodeBlockRegex.match(markdown);
 
-    if (match.hasMatch()) {
-        QString code = match.captured(1).trimmed();
+    if (cppMatch.hasMatch()) {
+        QString code = cppMatch.captured(1).trimmed();
+        logDebug("提取到C++代码块");
         return code;
     }
 
+    // 尝试匹配Python代码块
+    static QRegularExpression pythonCodeBlockRegex(R"(```python\s*([\s\S]*?)```)");
+    QRegularExpressionMatch pythonMatch = pythonCodeBlockRegex.match(markdown);
+
+    if (pythonMatch.hasMatch()) {
+        QString code = pythonMatch.captured(1).trimmed();
+        logDebug("提取到Python代码块");
+        return code;
+    }
+
+    // 尝试匹配任何代码块
     static QRegularExpression anyCodeBlockRegex(R"(```\w*\s*([\s\S]*?)```)");
-    match = anyCodeBlockRegex.match(markdown);
+    QRegularExpressionMatch anyMatch = anyCodeBlockRegex.match(markdown);
 
-    if (match.hasMatch()) {
-        QString code = match.captured(1).trimmed();
+    if (anyMatch.hasMatch()) {
+        QString code = anyMatch.captured(1).trimmed();
+        logDebug("提取到未指定语言的代码块");
         return code;
     }
+
+    logDebug("未找到任何代码块");
     return {};
 }
 
@@ -597,20 +596,20 @@ bool AIAssistantWidget::getProblemInfoFromPreview(OpenJudgePreviewWidget *previe
         description = content;
     }
 
-    currentTitle = title;
-    currentDescription = description.trimmed();
-    currentInputDesc = inputDesc.trimmed();
-    currentOutputDesc = outputDesc.trimmed();
-    currentSampleInput = sampleInput.trimmed();
-    currentSampleOutput = sampleOutput.trimmed();
+    currentProblem.title = title;
+    currentProblem.description = description.trimmed();
+    currentProblem.inputDesc = inputDesc.trimmed();
+    currentProblem.outputDesc = outputDesc.trimmed();
+    currentProblem.sampleInput = sampleInput.trimmed();
+    currentProblem.sampleOutput = sampleOutput.trimmed();
 
     logCurrentProblemInfo();
 
-    return !currentTitle.isEmpty() && !currentDescription.isEmpty();
+    return !currentProblem.title.isEmpty() && !currentProblem.description.isEmpty();
 }
 
 QCoro::Task<bool> AIAssistantWidget::getProblemInfoFromUrl(const QUrl &url) {
-    auto result = co_await ProblemCrawler::getInstance().getProblemDetail(url);
+    auto result = co_await OJParser::getInstance().getProblemDetail(url);
 
     if (!result.has_value()) {
         const QString& errorMsg = result.error();
@@ -619,16 +618,10 @@ QCoro::Task<bool> AIAssistantWidget::getProblemInfoFromUrl(const QUrl &url) {
         co_return false;
     }
 
-    const OJProblemDetail& detail = result.value();
-    currentTitle = detail.title;
-    currentDescription = detail.description;
-    currentInputDesc = detail.inputDesc;
-    currentOutputDesc = detail.outputDesc;
-    currentSampleInput = detail.sampleInput;
-    currentSampleOutput = detail.sampleOutput;
+    currentProblem = result.value();
     logCurrentProblemInfo();
 
-    QString message = tr("已加载题目: %1").arg(currentTitle);
+    QString message = tr("已加载题目: %1").arg(currentProblem.title);
     AIMessage systemMsg(AIMessageType::SYSTEM, message);
     displayMessage(systemMsg);
 
@@ -637,19 +630,19 @@ QCoro::Task<bool> AIAssistantWidget::getProblemInfoFromUrl(const QUrl &url) {
 
 QString AIAssistantWidget::getFullProblemDescription() const {
     // Build complete problem information
-    QString fullDescription = currentDescription;
+    QString fullDescription = currentProblem.description;
 
-    if (!currentInputDesc.isEmpty()) {
-        fullDescription += "\n\nInput Description:\n" + currentInputDesc;
+    if (!currentProblem.inputDesc.isEmpty()) {
+        fullDescription += "\n\nInput Description:\n" + currentProblem.inputDesc;
     }
-    if (!currentOutputDesc.isEmpty()) {
-        fullDescription += "\n\nOutput Description:\n" + currentOutputDesc;
+    if (!currentProblem.outputDesc.isEmpty()) {
+        fullDescription += "\n\nOutput Description:\n" + currentProblem.outputDesc;
     }
-    if (!currentSampleInput.isEmpty()) {
-        fullDescription += "\n\nSample Input:\n" + currentSampleInput;
+    if (!currentProblem.sampleInput.isEmpty()) {
+        fullDescription += "\n\nSample Input:\n" + currentProblem.sampleInput;
     }
-    if (!currentSampleOutput.isEmpty()) {
-        fullDescription += "\n\nSample Output:\n" + currentSampleOutput;
+    if (!currentProblem.sampleOutput.isEmpty()) {
+        fullDescription += "\n\nSample Output:\n" + currentProblem.sampleOutput;
     }
 
     return fullDescription;
@@ -658,7 +651,7 @@ QString AIAssistantWidget::getFullProblemDescription() const {
 void AIAssistantWidget::showCurrentProblemInfo() {
     logDebug("Displaying current problem information");
 
-    if (currentTitle.isEmpty() || currentDescription.isEmpty()) {
+    if (currentProblem.title.isEmpty() || currentProblem.description.isEmpty()) {
         logDebug("Problem information incomplete, cannot display");
         QMessageBox::warning(this, tr("题目信息不完整"), tr("当前没有完整的题目信息可以显示。"));
         return;
@@ -666,23 +659,23 @@ void AIAssistantWidget::showCurrentProblemInfo() {
 
     // Build problem information display text
     QString infoText = tr("当前题目信息：\n\n");
-    infoText += tr("标题：%1\n\n").arg(currentTitle);
-    infoText += tr("描述：\n%1\n\n").arg(currentDescription);
+    infoText += tr("标题：%1\n\n").arg(currentProblem.title);
+    infoText += tr("描述：\n%1\n\n").arg(currentProblem.description);
 
-    if (!currentInputDesc.isEmpty()) {
-        infoText += tr("输入描述：\n%1\n\n").arg(currentInputDesc);
+    if (!currentProblem.inputDesc.isEmpty()) {
+        infoText += tr("输入描述：\n%1\n\n").arg(currentProblem.inputDesc);
     }
 
-    if (!currentOutputDesc.isEmpty()) {
-        infoText += tr("输出描述：\n%1\n\n").arg(currentOutputDesc);
+    if (!currentProblem.outputDesc.isEmpty()) {
+        infoText += tr("输出描述：\n%1\n\n").arg(currentProblem.outputDesc);
     }
 
-    if (!currentSampleInput.isEmpty()) {
-        infoText += tr("样例输入：\n%1\n\n").arg(currentSampleInput);
+    if (!currentProblem.sampleInput.isEmpty()) {
+        infoText += tr("样例输入：\n%1\n\n").arg(currentProblem.sampleInput);
     }
 
-    if (!currentSampleOutput.isEmpty()) {
-        infoText += tr("样例输出：\n%1\n\n").arg(currentSampleOutput);
+    if (!currentProblem.sampleOutput.isEmpty()) {
+        infoText += tr("样例输出：\n%1\n\n").arg(currentProblem.sampleOutput);
     }
 
     // Display problem information
@@ -698,16 +691,16 @@ void AIAssistantWidget::logDebug(const QString &message) {
 void AIAssistantWidget::logCurrentProblemInfo() const {
     qDebug() << "[AI Assistant Debug] Current problem info:";
     qDebug() << "[AI Assistant Debug]   Title:"
-             << (currentTitle.isEmpty() ? "empty" : currentTitle);
-    qDebug() << "[AI Assistant Debug]   Description length:" << currentDescription.length()
+             << (currentProblem.title.isEmpty() ? "empty" : currentProblem.title);
+    qDebug() << "[AI Assistant Debug]   Description length:" << currentProblem.description.length()
              << "characters";
-    qDebug() << "[AI Assistant Debug]   Input description length:" << currentInputDesc.length()
+    qDebug() << "[AI Assistant Debug]   Input description length:" << currentProblem.inputDesc.length()
              << "characters";
-    qDebug() << "[AI Assistant Debug]   Output description length:" << currentOutputDesc.length()
+    qDebug() << "[AI Assistant Debug]   Output description length:" << currentProblem.outputDesc.length()
              << "characters";
-    qDebug() << "[AI Assistant Debug]   Sample input length:" << currentSampleInput.length()
+    qDebug() << "[AI Assistant Debug]   Sample input length:" << currentProblem.sampleInput.length()
              << "characters";
-    qDebug() << "[AI Assistant Debug]   Sample output length:" << currentSampleOutput.length()
+    qDebug() << "[AI Assistant Debug]   Sample output length:" << currentProblem.sampleOutput.length()
              << "characters";
 }
 

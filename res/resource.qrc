@@ -27,6 +27,7 @@
         <file>qss/menu.css</file>
         <file>qss/fileTree.css</file>
         <file>qss/preview.css</file>
+        <file>qss/aiAssistant.css</file>
         <file>script/match.py</file>
         <file>script/crawl.py</file>
         <file>script/parser.py</file>
