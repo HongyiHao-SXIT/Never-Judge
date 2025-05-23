@@ -25,9 +25,7 @@ QJsonObject LSPTextDocument::toJson() const {
     return obj;
 }
 
-std::pair<QString, QJsonValue> LSPTextDocument::toEntry() const {
-    return {"textDocument", toJson()};
-}
+QPair<QString, QJsonValue> LSPTextDocument::toEntry() const { return {"textDocument", toJson()}; }
 
 void LSPPosition::readJson(QJsonObject json) {
     line = json["line"].toInt();
@@ -41,7 +39,7 @@ void LSPRange::readJson(QJsonObject json) {
 
 QJsonObject LSPPosition::toJson() const { return {{"line", line}, {"character", character}}; }
 
-std::pair<QString, QJsonValue> LSPPosition::toEntry() const { return {"position", toJson()}; }
+QPair<QString, QJsonValue> LSPPosition::toEntry() const { return {"position", toJson()}; }
 
 void InitializeResponse::parseJson(const QJsonObject &response) {
     // check the necessary keys

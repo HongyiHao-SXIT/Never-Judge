@@ -5,10 +5,9 @@
 #include "crawl.h"
 
 // Initialize static instance pointer
-OJParser* OJParser::instance = nullptr;
+OJParser *OJParser::instance = nullptr;
 
-OJParser::OJParser(QObject *parent) : QObject(parent) {
-}
+OJParser::OJParser(QObject *parent) : QObject(parent) {}
 
 OJParser &OJParser::getInstance() {
     if (!instance) {
@@ -17,7 +16,7 @@ OJParser &OJParser::getInstance() {
     return *instance;
 }
 
-QCoro::Task<std::expected<OJProblem, QString>> OJParser::parseProblem(const QByteArray &html) {
+OJParser::ParseResult<OJProblem> OJParser::parseProblem(const QByteArray &html) {
     auto tempFile = TempFiles::create("problem", html);
     tempFile->close();
 
@@ -34,8 +33,8 @@ QCoro::Task<std::expected<OJProblem, QString>> OJParser::parseProblem(const QByt
     co_return OJProblem(title, content);
 }
 
-QCoro::Task<std::expected<OJMatch, QString>> OJParser::parseProblemUrlsInMatch(const QByteArray &content) {
-    auto tempFile = TempFiles::create("match", content);
+OJParser::ParseResult<OJMatch> OJParser::parseMatch(const QByteArray &html) {
+    auto tempFile = TempFiles::create("match", html);
     tempFile->close();
 
     QFile script = loadRes("script/match.py");
@@ -51,8 +50,8 @@ QCoro::Task<std::expected<OJMatch, QString>> OJParser::parseProblemUrlsInMatch(c
 };
 
 
-QCoro::Task<std::expected<OJSubmitForm, QString>> OJParser::parseProblemSubmitForm(const QByteArray &content) {
-    auto tempFile = TempFiles::create("submit", content);
+OJParser::ParseResult<OJSubmitForm> OJParser::parseProblemSubmitForm(const QByteArray &html) {
+    auto tempFile = TempFiles::create("submit", html);
     tempFile->close();
 
     QFile script = loadRes("script/submit.py");
@@ -74,8 +73,9 @@ QCoro::Task<std::expected<OJSubmitForm, QString>> OJParser::parseProblemSubmitFo
     co_return OJSubmitForm(contestId, problemNumber, languages);
 }
 
-QCoro::Task<std::expected<OJSubmitResponse, QString>> OJParser::parseProblemSubmitResponse(const QByteArray &content) {
-    auto tempFile = TempFiles::create("submit_result", content);
+OJParser::ParseResult<OJSubmitResponse>
+OJParser::parseProblemSubmitResponse(const QByteArray &html) {
+    auto tempFile = TempFiles::create("submit_result", html);
     tempFile->close();
 
     QFile script = loadRes("script/submit_response.py");
@@ -84,33 +84,27 @@ QCoro::Task<std::expected<OJSubmitResponse, QString>> OJParser::parseProblemSubm
         co_return std::unexpected(output.stdErr);
     }
 
-    static QMap<QString, OJSubmitResult> map = {{"Waiting", W},
-                                                {"Accepted", AC},
-                                                {"Wrong Answer", WA},
-                                                {"Compile Error", CE},
-                                                {"Runtime Error", RE},
-                                                {"Time Limit Exceeded", TLE},
-                                                {"Memory Limit Exceeded", MLE},
-                                                {"Presentation Error", PE}};
+    static QMap<QString, OJSubmitResponse::Result> map = {
+            {"Waiting", OJSubmitResponse::W},
+            {"Accepted", OJSubmitResponse::AC},
+            {"Wrong Answer", OJSubmitResponse::WA},
+            {"Compile Error", OJSubmitResponse::CE},
+            {"Runtime Error", OJSubmitResponse::RE},
+            {"Time Limit Exceeded", OJSubmitResponse::TLE},
+            {"Memory Limit Exceeded", OJSubmitResponse::MLE},
+            {"Presentation Error", OJSubmitResponse::PE}};
 
     QString outStr = output.stdOut;
     auto index = outStr.indexOf('\n');
     QString resStr = outStr.mid(0, index);
-    auto result = map.contains(resStr) ? map[resStr] : UKE;
+    auto result = map.contains(resStr) ? map[resStr] : OJSubmitResponse::UKE;
     auto message = outStr.count('\n') > 1 ? outStr.mid(index + 1) : "";
     co_return OJSubmitResponse(result, message);
 }
 
-QCoro::Task<std::expected<OJProblemDetail, QString>> OJParser::getProblemDetail(const QUrl &url) {
-    // Use existing crawler to get page content
-    auto response = co_await Crawler::instance().get(url);
-
-    if (!response.has_value()) {
-        co_return std::unexpected(response.error());
-    }
-
-    // Create temporary file to store page content
-    auto tempFile = TempFiles::create("problem_detail", response.value());
+OJParser::ParseResult<OJProblemDetail> OJParser::parseProblemDetail(const QByteArray &html) {
+    // Create a temporary file to store page content
+    auto tempFile = TempFiles::create("problem_detail", html);
     tempFile->close();
 
     // Use Python script to parse page content
@@ -140,19 +134,10 @@ QCoro::Task<std::expected<OJProblemDetail, QString>> OJParser::getProblemDetail(
     if (parts.size() > 6) {
         detail.hint = parts[6];
     }
-
-    detail.sourceUrl = url.toString();
-
     co_return detail;
 }
 
-QCoro::Task<std::expected<OJProblemDetail, QString>> OJParser::getProblemDetail(
-    const QString &contestId,
-    const QString &problemId
-) {
-    // Construct problem URL
-    QUrl url(QString("http://cxsjsx.openjudge.cn/%1/problem/%2/").arg(contestId, problemId));
-
-    // Call URL version of the method
-    co_return co_await getProblemDetail(url);
+OJParser::ParseResult<OJPersonalizationForm>
+OJParser::parsePersonalizationForm(const QByteArray &html) {
+    co_return std::unexpected("not implemented");
 }

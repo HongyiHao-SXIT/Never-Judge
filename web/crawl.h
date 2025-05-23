@@ -19,13 +19,20 @@ public:
     static Crawler &instance();
     bool hasLogin() const;
 
+    // Basic wrapper for web request
     // Returns the response or an error message
-    QCoro::Task<std::expected<QByteArray, QString>> get(const QUrl &url);
-    QCoro::Task<std::expected<QByteArray, QString>> post(const QUrl &url, QMap<QString, QString> params);
+    template<class T>
+    using WebResponse = QCoro::Task<std::expected<T, QString>>;
 
-    QCoro::Task<std::expected<QByteArray, QString>> login(const QString &email, const QString &password);
+    WebResponse<QByteArray> get(const QUrl &url);
+    WebResponse<QByteArray> post(const QUrl &url, QMap<QString, QString> params);
+
+    /** if login succeeded, return the response from OJ */
+    WebResponse<QByteArray> login(const QString &email, const QString &password);
     /** if submit succeeded, return the redict url */
-    QCoro::Task<std::expected<QUrl, QString>> submit(OJSubmitForm form);
+    WebResponse<QUrl> submit(OJSubmitForm form);
+    /** if personalization change succeeded, return the response from OJ */
+    WebResponse<QByteArray> personalize(OJPersonalizationForm form);
 };
 
 #endif // CRAWL_H

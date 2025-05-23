@@ -317,33 +317,33 @@ void OpenJudgePreviewWidget::showSubmitResponse(const OJSubmitResponse &response
     QString text;
     bool ok = false;
     switch (response.result) {
-        case W:
+        case OJSubmitResponse::W:
             // retry to wait for the result;
             emit submitFinished(std::move(source));
             return;
-        case AC:
+        case OJSubmitResponse::AC:
             ok = true;
             text = tr("您 AC 了！太您了！");
             break;
-        case WA:
+        case OJSubmitResponse::WA:
             text = tr("喜报：您 WA 了！");
             break;
-        case CE:
+        case OJSubmitResponse::CE:
             text = tr("CE... 提交前能不能先看看代码跑得起来不？\n%1").arg(response.message);
             break;
-        case RE:
+        case OJSubmitResponse::RE:
             text = tr("您 RE 了！但愿不是段错误...");
             break;
-        case TLE:
+        case OJSubmitResponse::TLE:
             text = tr("您 TLE 了！超时判负！");
             break;
-        case MLE:
+        case OJSubmitResponse::MLE:
             text = tr("您 MLE 了！也许我该换个更大的内存条...");
             break;
-        case PE:
+        case OJSubmitResponse::PE:
             text = tr("PE！注意一下格式就可以了吧，大概...");
             break;
-        case UKE:
+        case OJSubmitResponse::UKE:
             text = tr("是没见过的报错呢~ 还请您手动看看~");
             break;
     }
@@ -403,7 +403,7 @@ QCoro::Task<> OpenJudgePreviewWidget::batchDownloadOJ() {
         co_return;
     }
 
-    auto urls = co_await OJParser::parseProblemUrlsInMatch(content.value());
+    auto urls = co_await OJParser::parseMatch(content.value());
     if (!urls.has_value()) {
         warning(tr("解析比赛失败：%1").arg(urls.error()));
         co_return;

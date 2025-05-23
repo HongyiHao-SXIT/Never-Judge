@@ -39,7 +39,7 @@ struct LSPTextDocument {
     int version = 1;
 
     QJsonObject toJson() const;
-    std::pair<QString, QJsonValue> toEntry() const;
+    QPair<QString, QJsonValue> toEntry() const;
 };
 
 struct LSPPosition {
@@ -48,7 +48,7 @@ struct LSPPosition {
 
     void readJson(QJsonObject json);
     QJsonObject toJson() const;
-    std::pair<QString, QJsonValue> toEntry() const;
+    QPair<QString, QJsonValue> toEntry() const;
 };
 
 struct LSPRange {

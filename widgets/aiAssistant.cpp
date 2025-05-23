@@ -11,6 +11,7 @@
 #include "../ide/aiChat.h"
 #include "../util/file.h"
 #include "../web/aiClient.h"
+#include "../web/crawl.h"
 #include "../widgets/code.h"
 
 AIAssistantWidget::AIAssistantWidget(CodeTabWidget *codeTab, QWidget *parent) :
@@ -557,12 +558,19 @@ bool AIAssistantWidget::getProblemInfoFromPreview(const OpenJudgePreviewWidget *
 }
 
 QCoro::Task<bool> AIAssistantWidget::getProblemInfoFromUrl(const QUrl &url) {
-    auto result = co_await OJParser::getInstance().getProblemDetail(url);
+    auto response = co_await Crawler::instance().get(url);
+    if (!response.has_value()) {
+        const QString &errorMsg = response.error();
+        logDebug("Failed to get problem: " + errorMsg);
+        QMessageBox::warning(this, tr("获取题目失败"), tr("无法下载题目：%1").arg(errorMsg));
+        co_return false;
+    }
 
+    auto result = co_await OJParser::getInstance().parseProblemDetail(response.value());
     if (!result.has_value()) {
         const QString &errorMsg = result.error();
-        logDebug("Failed to get problem: " + errorMsg);
-        QMessageBox::warning(this, tr("获取题目失败"), tr("无法获取题目信息：%1").arg(errorMsg));
+        logDebug("Failed to parse problem detail: " + errorMsg);
+        QMessageBox::warning(this, tr("解析题目失败"), tr("无法解析题目信息：%1").arg(errorMsg));
         co_return false;
     }
 

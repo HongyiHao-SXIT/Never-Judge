@@ -17,7 +17,6 @@ struct OJProblemDetail {
     QString sampleInput;
     QString sampleOutput;
     QString hint;
-    QString sourceUrl;
 };
 
 struct OJMatch {
@@ -38,11 +37,24 @@ struct OJSubmitForm {
     QUrl problemUrl;
 };
 
-enum OJSubmitResult { W, AC, WA, CE, RE, TLE, MLE, PE, UKE };
 
 struct OJSubmitResponse {
-    OJSubmitResult result;
+    enum Result { W, AC, WA, CE, RE, TLE, MLE, PE, UKE };
+
+    Result result;
     QString message;
+};
+
+struct OJPersonalizationForm {
+    enum Gender { Male, Female };
+
+    QString nickname;
+    QString name;
+    QString description;
+    Gender gender;
+    QString birthday;
+    QString city;
+    QString school;
 };
 
 #endif // OJ_H

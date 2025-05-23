@@ -2,9 +2,9 @@
 
 #include <QDir>
 #include <QIcon>
-#include <QStandardPaths>
 #include <QJsonDocument>
 #include <QJsonParseError>
+#include <QStandardPaths>
 #include <qcoro/qcoroprocess.h>
 
 QFile loadRes(const QString &path) { return QFile(":/res/" + path); }
@@ -23,7 +23,8 @@ QString loadText(const QString &path) {
 }
 
 
-const QString TempFiles::PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/never-judge";
+const QString TempFiles::PATH =
+        QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/never-judge";
 #define TempFileName(id) (PATH + "/temp" + (id.isEmpty() ? "" : "-") + id)
 
 TempFiles::TempId TempFiles::genID(const QString &filename) {
@@ -74,8 +75,8 @@ void TempFiles::clearCache() {
     qDebug() << "TempFiles::cleared cache:" << PATH;
 }
 
-const QString Configs::PATH =
-        QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/never-judge/config.json";
+const QString Configs::PATH = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) +
+                              "/never-judge/config.json";
 
 Configs &Configs::instance() {
     static Configs instance = Configs(nullptr);
@@ -101,15 +102,18 @@ void Configs::reset() {
 }
 
 Configs::Configs(QObject *parent) : QObject(parent) {
-    QDir dir = QFileInfo(PATH).absoluteDir();
-    if (!dir.exists() && !dir.mkpath(PATH)) {
-        qDebug() << "ConfigManager::ConfigManager cannot make dir:" << PATH;
+    // create folder if not exist
+    QString folder =
+            QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/never-judge";
+    QDir dir;
+    if (!dir.exists(folder) && dir.mkpath(folder)) {
     }
 
     // load default config
     QFile defaultFile = loadRes("setting/settings.json");
     if (!defaultFile.open(QIODevice::ReadOnly)) {
-        qWarning() << "ConfigManager::ConfigManager cannot open default config file:" << defaultFile.errorString();
+        qWarning() << "ConfigManager::ConfigManager cannot open default config file:"
+                   << defaultFile.errorString();
         return;
     }
     QByteArray data = defaultFile.readAll();
@@ -136,7 +140,8 @@ Configs::Configs(QObject *parent) : QObject(parent) {
     emit configChanged(loadConfig());
 
     watcher.addPath(PATH);
-    connect(&watcher, &QFileSystemWatcher::fileChanged, this, [this] { emit configChanged(loadConfig()); });
+    connect(&watcher, &QFileSystemWatcher::fileChanged, this,
+            [this] { emit configChanged(loadConfig()); });
 }
 
 QJsonObject Configs::loadConfig() {

@@ -1,10 +1,10 @@
 #include "crawl.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QNetworkCookieJar>
 #include <QUrlQuery>
-#include <QJsonDocument>
-#include <QJsonParseError>
-#include <QJsonObject>
 
 #include "../util/file.h"
 #include "../util/script.h"
@@ -18,7 +18,7 @@ Crawler &Crawler::instance() {
 
 bool Crawler::hasLogin() const { return !email.isEmpty() && !password.isEmpty(); }
 
-// QCoro::Task<std::expected<QByteArray, QString>> Crawler::get(const QUrl &url) {
+// Crawler::WebResponse<QByteArray> Crawler::get(const QUrl &url) {
 //     QNetworkRequest request(url);
 //     request.setRawHeader("User-Agent", "Mozilla/5.0");
 //     request.setRawHeader("Referer", "http://cxsjsx.openjudge.cn/");
@@ -39,7 +39,7 @@ bool Crawler::hasLogin() const { return !email.isEmpty() && !password.isEmpty();
 //     co_return response;
 // }
 //
-// QCoro::Task<std::expected<QByteArray, QString>> Crawler::post(const QUrl &url, QMap<QString, QString> params) {
+// Crawler::WebResponse<QByteArray> Crawler::post(const QUrl &url, QMap<QString, QString> params) {
 //     QNetworkRequest request(url);
 //     request.setTransferTimeout(5000);
 //     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -67,7 +67,8 @@ bool Crawler::hasLogin() const { return !email.isEmpty() && !password.isEmpty();
 //     co_return response;
 // }
 //
-// QCoro::Task<std::expected<QByteArray, QString>> Crawler::loginToOJ(const QString &email, const QString &password) {
+// Crawler::WebResponse<QByteArray> Crawler::loginToOJ(const QString &email, const QString
+// &password) {
 //     QString loginUrl = "http://openjudge.cn/api/auth/login/";
 //     QMap<QString, QString> params = {{"email", email}, {"password", password}};
 //     auto res = co_await Crawler::instance().post(loginUrl, params);
@@ -95,7 +96,7 @@ bool Crawler::hasLogin() const { return !email.isEmpty() && !password.isEmpty();
 /* TODO: I know this implement is foolish
  * So fix the network manager later */
 
-QCoro::Task<std::expected<QByteArray, QString>> Crawler::get(const QUrl &url) {
+Crawler::WebResponse<QByteArray> Crawler::get(const QUrl &url) {
     QStringList args = {"-u", url.toString()};
 
     if (hasLogin()) {
@@ -111,7 +112,7 @@ QCoro::Task<std::expected<QByteArray, QString>> Crawler::get(const QUrl &url) {
 }
 
 
-QCoro::Task<std::expected<QByteArray, QString>> Crawler::post(const QUrl &url, QMap<QString, QString> params) {
+Crawler::WebResponse<QByteArray> Crawler::post(const QUrl &url, QMap<QString, QString> params) {
 
     QStringList args = {"-u", url.toString(), "-m", "post"};
 
@@ -134,19 +135,22 @@ QCoro::Task<std::expected<QByteArray, QString>> Crawler::post(const QUrl &url, Q
     co_return res.stdOut.toUtf8();
 }
 
-QCoro::Task<std::expected<QByteArray, QString>> Crawler::login(const QString &email, const QString &password) {
+Crawler::WebResponse<QByteArray> Crawler::login(const QString &email, const QString &password) {
     this->email = email;
     this->password = password;
     // go to the homepage for a test
     return get(QUrl("http://openjudge.cn/"));
 }
 
-QCoro::Task<std::expected<QUrl, QString>> Crawler::submit(OJSubmitForm form) {
+Crawler::WebResponse<QUrl> Crawler::submit(OJSubmitForm form) {
     QUrl url = form.problemUrl.resolved(QUrl("/api/solution/submitv2/"));
     QByteArray encodedCode = form.code.toUtf8().toBase64();
     QMap<QString, QString> params = {
-            {"contestId", form.contestId}, {"problemNumber", form.problemNumber},      {"sourceEncode", "base64"},
-            {"language", form.checked},    {"source", QString::fromUtf8(encodedCode)},
+            {"contestId", form.contestId},
+            {"problemNumber", form.problemNumber},
+            {"sourceEncode", "base64"},
+            {"language", form.checked},
+            {"source", QString::fromUtf8(encodedCode)},
     };
 
     auto response = co_await post(url, params);
@@ -166,3 +170,7 @@ QCoro::Task<std::expected<QUrl, QString>> Crawler::submit(OJSubmitForm form) {
     QString message = obj["message"].toString();
     co_return std::unexpected(message);
 }
+
+Crawler::WebResponse<QByteArray> Crawler::personalize(OJPersonalizationForm form) {
+    co_return std::unexpected("not implemented");
+};
