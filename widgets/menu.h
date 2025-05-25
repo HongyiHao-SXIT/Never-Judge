@@ -27,14 +27,14 @@ signals:
     void openSettings();
     /** Login to OJ */
     void loginOJ();
+    /** Personalize OJ */
+    void personalizeOJ();
     /** Download from OJ */
     void downloadOJ();
     /** Batch download from OJ */
     void batchDownloadOJ();
     /** Submit the code to OJ */
     void submitOJ();
-    /** Open personal information settings */
-    void openPersonalInfo();
 
 private slots:
     void onSave();
@@ -43,6 +43,7 @@ private slots:
     void onNewFolder();
     void onOpenSettings();
     void onLoginOJ();
+    void onPersonalizeOJ();
     void onDownloadOJ();
     void onBatchDownloadOJ();
     void onSubmitOJ();

@@ -6,9 +6,10 @@
 #include <QSplitter>
 
 #include "../util/file.h"
-#include "setting.h"
-#include "preview.h"
 #include "aiAssistant.h"
+#include "ojPersonal.h"
+#include "preview.h"
+#include "setting.h"
 
 IDEMainWindow::IDEMainWindow(QWidget *parent) : QMainWindow(parent) {
     ide = new IDE();
@@ -123,7 +124,7 @@ void IDEMainWindow::connectSignals() {
     connect(ojPreview, &OpenJudgePreviewWidget::loginAs, menuBar, &MenuBarWidget::onLogin);
 
     // OJ set_info
-    connect(menuBar, &MenuBarWidget::openPersonalInfo, this, &IDEMainWindow::openPersonalSettings);
+    connect(menuBar, &MenuBarWidget::personalizeOJ, this, &IDEMainWindow::openPersonalSettings);
 }
 
 void IDEMainWindow::openFolder(const QString &folder) const {
@@ -137,8 +138,8 @@ void IDEMainWindow::openFolder(const QString &folder) const {
 }
 
 void IDEMainWindow::openSettings() {
-    auto settings = new SettingsDialog(this);
-    settings->exec();
+    SettingsDialog dlg(this);
+    dlg.exec();
 }
 
 void IDEMainWindow::runCurrentCode() const {

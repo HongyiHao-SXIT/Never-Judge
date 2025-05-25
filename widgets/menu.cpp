@@ -16,7 +16,8 @@ MenuBarWidget::MenuBarWidget(QWidget *parent) : QMenuBar(parent) {
     setup();
 }
 
-void MenuBarWidget::newAction(QMenu *menu, const QString &title, const QKeySequence &shortcut, SlotFunc slot) {
+void MenuBarWidget::newAction(QMenu *menu, const QString &title, const QKeySequence &shortcut,
+                              SlotFunc slot) {
     auto *action = new QAction(title, this);
     action->setShortcut(shortcut);
     menu->addAction(action);
@@ -26,32 +27,30 @@ void MenuBarWidget::newAction(QMenu *menu, const QString &title, const QKeySeque
 void MenuBarWidget::setup() {
     // File menu
     QMenu *fileMenu = this->addMenu("文件");
-    newAction(fileMenu, "保存", QKeySequence(Qt::CTRL | Qt::Key_S), &MenuBarWidget::onSave);
-    newAction(fileMenu, "打开项目", QKeySequence(Qt::CTRL | Qt::Key_O), &MenuBarWidget::onOpenFolder);
-    QMenu *newMenu = fileMenu->addMenu("新建");
-    newAction(newMenu, "文件", QKeySequence(Qt::CTRL | Qt::Key_N), &MenuBarWidget::onNewFile);
-    newAction(newMenu, "文件夹", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N), &MenuBarWidget::onNewFolder);
+    newAction(fileMenu, tr("保存"), QKeySequence(Qt::CTRL | Qt::Key_S), &MenuBarWidget::onSave);
+    newAction(fileMenu, tr("打开项目"), QKeySequence(Qt::CTRL | Qt::Key_O),
+              &MenuBarWidget::onOpenFolder);
+    QMenu *newMenu = fileMenu->addMenu(tr("新建"));
+    newAction(newMenu, tr("文件"), QKeySequence(Qt::CTRL | Qt::Key_N), &MenuBarWidget::onNewFile);
+    newAction(newMenu, tr("文件夹"), QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N),
+              &MenuBarWidget::onNewFolder);
 
     // Run menu
-    QMenu *runMenu = this->addMenu("运行");
-    newAction(runMenu, "运行", QKeySequence(Qt::CTRL | Qt::Key_R), &MenuBarWidget::runCode);
+    QMenu *runMenu = this->addMenu(tr("运行"));
+    newAction(runMenu, tr("运行"), QKeySequence(Qt::CTRL | Qt::Key_R), &MenuBarWidget::runCode);
 
     // Edit menu
-    QMenu *editMenu = this->addMenu("编辑");
-    newAction(editMenu, "设置", QKeySequence(Qt::Key_F5), &MenuBarWidget::onOpenSettings);
-    QAction *personalInfoAction = new QAction(tr("个人信息"), this);
-    editMenu->addAction(personalInfoAction);
-    connect(personalInfoAction, &QAction::triggered, this, [this]() {
-        emit openPersonalInfo();
-    });
+    QMenu *editMenu = this->addMenu(tr("编辑"));
+    newAction(editMenu, tr("设置"), QKeySequence(Qt::Key_F5), &MenuBarWidget::onOpenSettings);
 
     // OJ menu
-    QMenu *ojMenu = this->addMenu("OpenJudge");
-    newAction(ojMenu, "登录", QKeySequence(), &MenuBarWidget::onLoginOJ);
+    QMenu *ojMenu = this->addMenu(tr("OpenJudge"));
+    newAction(ojMenu, tr("登录"), QKeySequence(), &MenuBarWidget::onLoginOJ);
+    newAction(ojMenu, tr("个人信息"), QKeySequence(), &MenuBarWidget::onPersonalizeOJ);
     ojMenu->addSeparator();
-    newAction(ojMenu, "下载", QKeySequence(), &MenuBarWidget::onDownloadOJ);
-    newAction(ojMenu, "批量下载", QKeySequence(), &MenuBarWidget::onBatchDownloadOJ);
-    newAction(ojMenu, "提交", QKeySequence(), &MenuBarWidget::onSubmitOJ);
+    newAction(ojMenu, tr("下载"), QKeySequence(), &MenuBarWidget::onDownloadOJ);
+    newAction(ojMenu, tr("批量下载"), QKeySequence(), &MenuBarWidget::onBatchDownloadOJ);
+    newAction(ojMenu, tr("提交"), QKeySequence(), &MenuBarWidget::onSubmitOJ);
 
     // show username here
     right = new QWidget(this);
@@ -75,8 +74,8 @@ void MenuBarWidget::setup() {
 void MenuBarWidget::onSave() { emit saveFile(); }
 
 void MenuBarWidget::onOpenFolder() {
-    QString folderPath =
-            QFileDialog::getExistingDirectory(this, tr("选择项目"), QDir::homePath(), QFileDialog::ShowDirsOnly);
+    QString folderPath = QFileDialog::getExistingDirectory(this, tr("选择项目"), QDir::homePath(),
+                                                           QFileDialog::ShowDirsOnly);
     if (!folderPath.isEmpty()) {
         emit openFolder(folderPath);
     }
@@ -89,6 +88,8 @@ void MenuBarWidget::onNewFolder() { emit newFolder(); }
 void MenuBarWidget::onOpenSettings() { emit openSettings(); }
 
 void MenuBarWidget::onLoginOJ() { emit loginOJ(); }
+
+void MenuBarWidget::onPersonalizeOJ() { emit personalizeOJ(); }
 
 void MenuBarWidget::onDownloadOJ() { emit downloadOJ(); }
 

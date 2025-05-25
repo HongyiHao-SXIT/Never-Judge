@@ -199,8 +199,6 @@ void AIAssistantWidget::onClearClicked() const {
 }
 
 bool AIAssistantWidget::tryGetProblemInfo() {
-    logDebug("Attempting to actively get problem information");
-
     QWidget *parent = this;
     while (parent && !parent->inherits("IDEMainWindow")) {
         parent = parent->parentWidget();
@@ -226,8 +224,6 @@ bool AIAssistantWidget::tryGetProblemInfo() {
 }
 
 void AIAssistantWidget::onAnalyzeClicked() {
-    qDebug() << "[AI Assistant Debug] Problem analysis button clicked";
-
     tryGetProblemInfo();
 
     if (problem.title.isEmpty() || problem.description.isEmpty()) {

@@ -30,7 +30,6 @@ set(PROJECT_SOURCES
         util/script.cpp
         web/crawl.cpp
         web/parse.cpp
-	web/oj.cpp
         web/aiClient.cpp
         res/resource.qrc
         ide/language.cpp
@@ -50,6 +49,7 @@ set(PROJECT_SOURCES
         widgets/terminal.cpp
         widgets/menu.cpp
         widgets/window.cpp
+        widgets/ojPersonal.cpp
         widgets/aiAssistant.cpp
         main.cpp
 )
