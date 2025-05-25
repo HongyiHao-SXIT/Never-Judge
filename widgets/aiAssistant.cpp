@@ -562,7 +562,7 @@ QCoro::Task<bool> AIAssistantWidget::getProblemInfoFromUrl(const QUrl &url) {
         co_return false;
     }
 
-    auto result = co_await OJParser::getInstance().parseProblemDetail(response.value());
+    auto result = co_await OJParser::parseProblemDetail(response.value());
     if (!result.has_value()) {
         const QString &errorMsg = result.error();
         logDebug("Failed to parse problem detail: " + errorMsg);

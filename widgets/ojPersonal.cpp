@@ -96,7 +96,7 @@ QCoro::Task<> PersonalSettingsDialog::loadExisting() {
     if (!resp.has_value())
         co_return;
 
-    auto parsed = co_await OJParser::getInstance().parsePersonalizationForm(resp.value());
+    auto parsed = co_await OJParser::parsePersonalizationForm(resp.value());
     if (!parsed.has_value())
         co_return;
 

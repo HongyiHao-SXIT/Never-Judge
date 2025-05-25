@@ -13,14 +13,7 @@
 class OJParser : public QObject {
     Q_OBJECT
 
-    // Singleton pattern
-    explicit OJParser(QObject *parent = nullptr);
-    static OJParser *instance;
-
 public:
-    // Get OJParser singleton instance
-    static OJParser &getInstance();
-
     // When succeeded, return the expected object, else return an error message
     template<class T>
     using ParseResult = QCoro::Task<std::expected<T, QString>>;

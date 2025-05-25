@@ -4,18 +4,6 @@
 #include "../util/script.h"
 #include "crawl.h"
 
-// Initialize static instance pointer
-OJParser *OJParser::instance = nullptr;
-
-OJParser::OJParser(QObject *parent) : QObject(parent) {}
-
-OJParser &OJParser::getInstance() {
-    if (!instance) {
-        instance = new OJParser();
-    }
-    return *instance;
-}
-
 OJParser::ParseResult<OJProblem> OJParser::parseProblem(const QByteArray &html) {
     auto tempFile = TempFiles::create("problem", html);
     tempFile->close();
