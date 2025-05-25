@@ -39,6 +39,7 @@ public slots:
     void openSettings();
     void runCurrentCode() const;
     void submitCurrentCode() const;
+    void openPersonalSettings();
 };
 
 

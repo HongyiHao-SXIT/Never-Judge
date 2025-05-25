@@ -1,5 +1,6 @@
 #include "window.h"
-
+#include "../web/oj.h"
+#include "../web/crawl.h"
 #include <QLayout>
 #include <QMessageBox>
 #include <QSplitter>
@@ -120,6 +121,9 @@ void IDEMainWindow::connectSignals() {
     connect(menuBar, &MenuBarWidget::loginOJ, ojPreview, &OpenJudgePreviewWidget::loginOJ);
     connect(menuBar, &MenuBarWidget::submitOJ, this, &IDEMainWindow::submitCurrentCode);
     connect(ojPreview, &OpenJudgePreviewWidget::loginAs, menuBar, &MenuBarWidget::onLogin);
+
+    // OJ set_info
+    connect(menuBar, &MenuBarWidget::openPersonalInfo, this, &IDEMainWindow::openPersonalSettings);
 }
 
 void IDEMainWindow::openFolder(const QString &folder) const {
@@ -169,4 +173,9 @@ void IDEMainWindow::submitCurrentCode() const {
         return;
     }
     ojPreview->submit(code);
+}
+
+void IDEMainWindow::openPersonalSettings() {
+    PersonalSettingsDialog dlg(this);
+    dlg.exec();
 }

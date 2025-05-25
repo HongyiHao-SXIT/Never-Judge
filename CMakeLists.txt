@@ -30,6 +30,7 @@ set(PROJECT_SOURCES
         util/script.cpp
         web/crawl.cpp
         web/parse.cpp
+	web/oj.cpp
         web/aiClient.cpp
         res/resource.qrc
         ide/language.cpp
@@ -61,6 +62,8 @@ target_include_directories(NeverJudge PRIVATE ${TREE_SITTER_INCLUDE_LIBRARY})
 target_link_libraries(NeverJudge PRIVATE
         qtermwidget6 Qt6::Widgets Qt6::Svg Qt6::Network QCoro6::Core QCoro6::Network
         ${TREE_SITTER_LIBRARIES})
+target_include_directories(NeverJudge PRIVATE
+	${CMAKE_SOURCE_DIR}/web)
 set_target_properties(NeverJudge PROPERTIES
         ${BUNDLE_ID_OPTION}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

@@ -38,7 +38,12 @@ void MenuBarWidget::setup() {
 
     // Edit menu
     QMenu *editMenu = this->addMenu("编辑");
-    newAction(editMenu, "设置", QKeySequence(Qt::Key_F5), &MenuBarWidget::openSettings);
+    newAction(editMenu, "设置", QKeySequence(Qt::Key_F5), &MenuBarWidget::onOpenSettings);
+    QAction *personalInfoAction = new QAction(tr("个人信息"), this);
+    editMenu->addAction(personalInfoAction);
+    connect(personalInfoAction, &QAction::triggered, this, [this]() {
+        emit openPersonalInfo();
+    });
 
     // OJ menu
     QMenu *ojMenu = this->addMenu("OpenJudge");

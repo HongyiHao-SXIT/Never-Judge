@@ -6,6 +6,7 @@
 #include <QNetworkCookieJar>
 #include <QUrlQuery>
 
+
 #include "../util/file.h"
 #include "../util/script.h"
 
@@ -172,5 +173,29 @@ Crawler::WebResponse<QUrl> Crawler::submit(OJSubmitForm form) {
 }
 
 Crawler::WebResponse<QByteArray> Crawler::personalize(OJPersonalizationForm form) {
-    co_return std::unexpected("not implemented");
-};
+    QUrl url("http://openjudge.cn/api/user/modify-profile/");
+    QMap<QString, QString> params {
+        {"name",        form.nickname},
+        {"realname",    form.name},
+        {"description", form.description},
+        {"gender",      form.gender == OJPersonalizationForm::Male ? "male" : "female"},
+        {"birthday",    form.birthday}, // yyyy-MM-dd
+        {"city",        form.city},
+        {"school",      form.school},
+    };
+    auto response = co_await post(url, params);
+    if (!response.has_value()) {
+        co_return std::unexpected(response.error());
+    }
+    QJsonParseError jpError;
+    QJsonDocument doc = QJsonDocument::fromJson(response.value(), &jpError);
+    if (jpError.error != QJsonParseError::NoError) {
+        co_return std::unexpected("JSON parse error: " + jpError.errorString());
+    }
+    QJsonObject obj = doc.object();
+    if (obj.value("result").toString() == "SUCCESS") {
+        co_return response.value();
+    }
+    QString message = obj.value("message").toString();
+    co_return std::unexpected(message);
+}

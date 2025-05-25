@@ -33,6 +33,8 @@ signals:
     void batchDownloadOJ();
     /** Submit the code to OJ */
     void submitOJ();
+    /** Open personal information settings */
+    void openPersonalInfo();
 
 private slots:
     void onSave();
