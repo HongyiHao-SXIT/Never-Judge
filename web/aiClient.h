@@ -13,7 +13,6 @@
 class AIClient : public QObject {
     Q_OBJECT
 
-private:
     QString apiKey;
     QString apiEndpoint;
     QNetworkAccessManager nam;

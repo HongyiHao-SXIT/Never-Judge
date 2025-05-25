@@ -22,7 +22,7 @@ class PersonalSettingsDialog : public QDialog {
 
 private slots:
     QCoro::Task<> onSave();
-    QCoro::Task<> loadExisting() const;
+    QCoro::Task<> loadExisting();
 
 public:
     explicit PersonalSettingsDialog(QWidget *parent = nullptr);

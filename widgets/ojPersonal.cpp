@@ -62,7 +62,7 @@ PersonalSettingsDialog::PersonalSettingsDialog(QWidget *parent) : QDialog(parent
 
 QCoro::Task<> PersonalSettingsDialog::onSave() {
     if (nicknameEdit->text().isEmpty()) {
-        QMessageBox::warning(this, tr("表单错误"), tr("昵称不能为空。"));
+        QMessageBox::warning(this, tr("表单错误"), tr("昵称不能为空！"));
         co_return;
     }
 
@@ -86,7 +86,12 @@ QCoro::Task<> PersonalSettingsDialog::onSave() {
     accept();
 }
 
-QCoro::Task<> PersonalSettingsDialog::loadExisting() const {
+QCoro::Task<> PersonalSettingsDialog::loadExisting() {
+    if (!Crawler::instance().hasLogin()) {
+        QMessageBox::warning(this, tr("未登录"), tr("请先登录 OpenJudge！"));
+        co_return;
+    }
+
     auto resp = co_await Crawler::instance().get(QUrl("http://openjudge.cn/settings/"));
     if (!resp.has_value())
         co_return;
