@@ -127,5 +127,36 @@ OJParser::ParseResult<OJProblemDetail> OJParser::parseProblemDetail(const QByteA
 
 OJParser::ParseResult<OJPersonalizationForm>
 OJParser::parsePersonalizationForm(const QByteArray &html) {
-    co_return std::unexpected("not implemented");
+
+    auto tempFile = TempFiles::create("personalization", html);
+    tempFile->close();
+
+    QFile script(QStringLiteral("../res/script/personalization.py"));
+    if (!script.open(QIODevice::ReadOnly)) {
+        co_return std::unexpected(QStringLiteral("Cannot open personalization.py at %1")
+                                  .arg(script.fileName()));
+    }
+
+    auto output = co_await runPythonScript(script, QStringList() << tempFile->fileName());
+    if (!output.success || output.exitCode != 0) {
+        co_return std::unexpected(output.stdErr);
+    }
+
+    const auto lines = output.stdOut.split('\n', Qt::SkipEmptyParts);
+    if (lines.size() < 7) {
+        co_return std::unexpected("Failed to parse personalization form: incorrect output format");
+    }
+
+    OJPersonalizationForm form;
+    form.nickname    = lines[0].trimmed();
+    form.name        = lines[1].trimmed();
+    form.description = lines[2].trimmed();
+    form.gender      = (lines[3].trimmed().toLower() == "female"
+                          ? OJPersonalizationForm::Female
+                          : OJPersonalizationForm::Male);
+    form.birthday    = lines[4].trimmed();
+    form.city        = lines[5].trimmed();
+    form.school      = lines[6].trimmed();
+
+    co_return form;
 }
