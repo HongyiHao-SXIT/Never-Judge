@@ -32,6 +32,7 @@
         <file>script/crawl.py</file>
         <file>script/parser.py</file>
         <file>script/submit.py</file>
+        <file>script/personalization.py</file>
         <file>script/submit_response.py</file>
         <file>setting/settings.json</file>
         <file>logo.txt</file>

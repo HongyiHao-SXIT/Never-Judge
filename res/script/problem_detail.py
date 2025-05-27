@@ -60,7 +60,7 @@ def parse_problem_detail(html_content):
 
 def main():
     if len(sys.argv) == 1:
-        file_path = "/tmp/never-judge/temp-problem_detail"  # 用于测试
+        file_path = "/tmp/never-judge/temp-problem_detail"  # used for testing
     else:
         file_path = sys.argv[1]
     

@@ -1,5 +1,8 @@
 import sys
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    raise ImportError("Please install BeautifulSoup4 using 'pip install beautifulsoup4'")
 
 def get_field(soup, name):
 
@@ -19,9 +22,10 @@ def get_field(soup, name):
     return ''
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit(1)
-    path = sys.argv[1]
+    if len(sys.argv) == 1:
+        path = "/tmp/never-judge/temp-personalization"  # used for testing
+    else:
+        path = sys.argv[1]
     with open(path, 'r', encoding='utf-8') as f:
         html = f.read()
     soup = BeautifulSoup(html, 'html.parser')
@@ -37,6 +41,7 @@ def main():
     fields = ['name', 'realname', 'description', 'gender', 'birthday', 'city', 'school']
     for field in fields:
         print(get_field(soup, field))
+        print("======")
 
 if __name__ == '__main__':
     main()

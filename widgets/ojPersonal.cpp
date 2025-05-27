@@ -92,13 +92,17 @@ QCoro::Task<> PersonalSettingsDialog::loadExisting() {
         co_return;
     }
 
-    auto resp = co_await Crawler::instance().get(QUrl("http://openjudge.cn/settings/"));
-    if (!resp.has_value())
+    auto response = co_await Crawler::instance().get(QUrl("http://openjudge.cn/settings/"));
+    if (!response.has_value()) {
+        QMessageBox::warning(this, tr("拉取失败"), response.error());
         co_return;
+    }
 
-    auto parsed = co_await OJParser::parsePersonalizationForm(resp.value());
-    if (!parsed.has_value())
+    auto parsed = co_await OJParser::parsePersonalizationForm(response.value());
+    if (!parsed.has_value()) {
+        QMessageBox::warning(this, tr("拉取失败"), parsed.error());
         co_return;
+    }
 
     auto &form = parsed.value();
     nicknameEdit->setText(form.nickname);
