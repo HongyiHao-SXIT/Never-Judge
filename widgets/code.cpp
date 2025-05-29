@@ -202,12 +202,7 @@ void WelcomeWidget::setup() {
 
     QFont logoFont("Consolas", 9);
     logoLabel->setFont(logoFont);
-    logoLabel->setStyleSheet(R"(
-        color: #569CD6;
-        background-color: transparent;
-        margin: 0;
-        padding: 0;
-    )");
+    logoLabel->setObjectName("logo");
 
     auto *shortcutLabel = new QLabel(this);
     shortcutLabel->setText("<p style='font-size: 16px; color: #D4D4D4;'>Ctrl+N 新建文件</p>"

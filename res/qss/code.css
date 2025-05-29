@@ -124,3 +124,10 @@ LineNumberArea {
     border-right: 1px solid #3F3F46;
     color: #858585;
 }
+
+#logo {
+    color: #569CD6;
+    background-color: transparent;
+    margin: 0;
+    padding: 0;
+}

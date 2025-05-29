@@ -204,6 +204,8 @@ QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
         co_await loginOJ();
         co_return;
     }
+    Configs::instance().set("email", dialog.rememberMe() ? email : "");
+
     auto task = FooterWidget::newTask(tr("正在登入"));
     task.wait();
     auto res = co_await Crawler::instance().login(email, password);
@@ -215,7 +217,6 @@ QCoro::Task<> OpenJudgePreviewWidget::loginOJ() {
         co_return;
     }
     QMessageBox::information(this, tr("登录成功"), tr("欢迎，") + email);
-    Configs::instance().set("email", dialog.rememberMe() ? email : "");
 
     emit loginAs(email);
 }

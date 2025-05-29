@@ -16,7 +16,8 @@
 #include "../util/file.h"
 
 template<class W, class V>
-void bindConfig(W *widget, const QString &key, void (W::*setterSlot)(const V &), void (W::*changedSignal)(const V &)) {
+void bindConfig(W *widget, const QString &key, void (W::*setterSlot)(const V &),
+                void (W::*changedSignal)(const V &)) {
     QVariant storedValue = Configs::instance().get(key);
     auto value = storedValue.value<V>();
     (widget->*setterSlot)(value);
@@ -61,7 +62,8 @@ public:
         auto *themeLayout = new QVBoxLayout(themeGroup);
         auto *terminalThemeCombo = new QComboBox(themeGroup);
         terminalThemeCombo->addItems(QTermWidget::availableColorSchemes());
-        bindConfig(terminalThemeCombo, "terminalTheme", &QComboBox::setCurrentText, &QComboBox::currentTextChanged);
+        bindConfig(terminalThemeCombo, "terminalTheme", &QComboBox::setCurrentText,
+                   &QComboBox::currentTextChanged);
 
         themeLayout->addWidget(new QLabel(tr("终端主题"), themeGroup));
         themeLayout->addWidget(terminalThemeCombo);
@@ -73,7 +75,8 @@ public:
         fontLayout->addWidget(new QLabel(tr("字体:"), fontGroup));
         fontCombo = new QComboBox(fontGroup);
         fontCombo->addItems(QFontDatabase::families());
-        connect(fontCombo, &QComboBox::currentTextChanged, this, &AppearancePage::onFontFamilyChanged);
+        connect(fontCombo, &QComboBox::currentTextChanged, this,
+                &AppearancePage::onFontFamilyChanged);
         fontLayout->addWidget(fontCombo);
 
         fontLayout->addWidget(new QLabel(tr("大小:")));
@@ -126,9 +129,17 @@ public:
 
         auto *cmdGroup = new QGroupBox(tr("运行命令"), this);
         auto *cmdLayout = new QVBoxLayout(cmdGroup);
+
+        auto *helpButton = new QLabel("悬停以查看预定义宏", this);
+        helpButton->setStyleSheet("font-style: italic; color: gray;");
+        helpButton->setToolTip(tr("$dir 表示文件所在文件夹\n"
+                                  "$filename 表示文件名\n"
+                                  "$filenameNoExt 表示无扩展名的文件名"));
+        cmdLayout->addWidget(helpButton);
         cmdLayout->addWidget(new QLabel(tr("C 运行配置"), cmdGroup));
         cRunCmdEdit = new QLineEdit(cmdGroup);
-        connect(cRunCmdEdit, &QLineEdit::textChanged, this, [this](const QString &v) { onCmdChanged(v, Language::C); });
+        connect(cRunCmdEdit, &QLineEdit::textChanged, this,
+                [this](const QString &v) { onCmdChanged(v, Language::C); });
         cmdLayout->addWidget(cRunCmdEdit);
         cmdLayout->addWidget(new QLabel(tr("C++ 运行配置"), cmdGroup));
         cppRunCmdEdit = new QLineEdit(cmdGroup);
@@ -163,7 +174,8 @@ public:
         auto *titleLabel = new QLabel(tr("<h2>NeverJudge</h2>"), this);
         auto *authorLabel = new QLabel(tr("作者: LeoDreamer"), this);
         auto *githubLabel = new QLabel(this);
-        githubLabel->setText(tr("项目地址: <a href='https://github.com/LeoDreamer2004/Never-Judge'>GitHub</a>"));
+        githubLabel->setText(
+                tr("项目地址: <a href='https://github.com/LeoDreamer2004/Never-Judge'>GitHub</a>"));
         githubLabel->setTextFormat(Qt::RichText);
         githubLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
         githubLabel->setOpenExternalLinks(true);
@@ -194,7 +206,8 @@ public:
         layout->addLayout(qtInfoLayout);
         layout->addStretch();
 
-        connect(qtInfoButton, &QPushButton::clicked, parent, [this] { QMessageBox::aboutQt(this); });
+        connect(qtInfoButton, &QPushButton::clicked, parent,
+                [this] { QMessageBox::aboutQt(this); });
     }
 };
 
@@ -210,7 +223,8 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     createPages();
     mainLayout->addWidget(stackedWidget, 3);
 
-    connect(navList, &QListWidget::currentRowChanged, stackedWidget, &QStackedWidget::setCurrentIndex);
+    connect(navList, &QListWidget::currentRowChanged, stackedWidget,
+            &QStackedWidget::setCurrentIndex);
     navList->setCurrentRow(0);
 }
 
