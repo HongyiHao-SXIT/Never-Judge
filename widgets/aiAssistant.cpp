@@ -233,7 +233,7 @@ void AIAssistantWidget::onAnalyzeClicked() {
     }
 
     QString fullDescription = getFullProblemDescription();
-    QString prompt = QString("请详细分析以下算法题目，包括以下内容：\n"
+    QString prompt = QString("用中文回答。请详细分析以下算法题目，包括以下内容：\n"
                              "1. 题目的核心问题和考点\n"
                              "2. 解题思路和算法策略\n"
                              "3. 可能的边界情况和注意事项\n"
@@ -257,11 +257,10 @@ void AIAssistantWidget::onCodeClicked() {
 
     QString fullDescription = getFullProblemDescription();
     QString prompt =
-            QString("请为以下算法题目生成一个完整、高效、易于理解的C++示例代码。代码应该：\n"
+            QString("用中文回答。请为以下算法题目生成一个完整、高效、易于理解的C++示例代码。代码应该：\n"
                     "1. 包含详细的注释，解释关键步骤和算法思路\n"
-                    "2. 处理各种边界情况\n"
+                    "2. 处理必要的边界情况\n"
                     "3. 使用合适的数据结构和算法\n"
-                    "4. 遵循良好的编程实践\n\n"
                     "题目：%1\n\n%2")
                     .arg(problem.title, fullDescription);
 
@@ -342,7 +341,7 @@ void AIAssistantWidget::onInsertCodeClicked() {
 void AIAssistantWidget::onSetApiKeyClicked() {
     bool ok;
     QString apiKey = QInputDialog::getText(
-            this, tr("设置 API 密钥"), tr("请输入 DeepSeek API 密钥:"), QLineEdit::Normal,
+            this, tr("设置 API 密钥"), tr("请输入 DeepSeek API 密钥:"), QLineEdit::Password,
             AIClient::getInstance().hasApiKey() ? "********" : "", &ok);
 
     if (ok && !apiKey.isEmpty()) {

@@ -49,7 +49,7 @@ QJsonObject AIClient::buildRequestJson(const QString &prompt, int maxTokens, dou
 QCoro::Task<std::expected<QString, QString>>
 AIClient::sendRequest(const QString &prompt, int maxTokens, double temperature) {
     if (!hasApiKey()) {
-        co_return std::unexpected("API key not set");
+        co_return std::unexpected(tr("尚未设置 API 密钥"));
     }
 
     QNetworkRequest request;
@@ -89,7 +89,7 @@ AIClient::sendRequest(const QString &prompt, int maxTokens, double temperature) 
     // Extract generated text
     QJsonArray choices = responseJson["choices"].toArray();
     if (choices.isEmpty()) {
-        co_return std::unexpected("No content in API response");
+        co_return std::unexpected(tr("API 响应为空"));
     }
 
     QString responseText = choices[0].toObject()["message"].toObject()["content"].toString();
@@ -100,7 +100,7 @@ AIClient::sendRequest(const QString &prompt, int maxTokens, double temperature) 
 
 void AIClient::sendRequestSync(const QString &prompt, int maxTokens, double temperature) {
     if (!hasApiKey()) {
-        emit requestCompleted(false, "API key not set");
+        emit requestCompleted(false, tr("尚未设置 API 密钥"));
         return;
     }
 
@@ -145,7 +145,7 @@ void AIClient::sendRequestSync(const QString &prompt, int maxTokens, double temp
         // Extract generated text
         QJsonArray choices = responseJson["choices"].toArray();
         if (choices.isEmpty()) {
-            emit requestCompleted(false, "No content in API response");
+            emit requestCompleted(false, tr("API 响应为空"));
             return;
         }
 

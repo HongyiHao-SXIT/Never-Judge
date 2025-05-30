@@ -423,7 +423,7 @@ void CodeEditWidget::onToggleComment() {
 
     cursor.beginEditBlock();
 
-    int movement = 0;
+    qsizetype movement = 0;
     cursor.setPosition(startPos);
     for (int i = startLine; i <= endLine; i++) {
         cursor.movePosition(QTextCursor::StartOfLine);
@@ -436,11 +436,12 @@ void CodeEditWidget::onToggleComment() {
         } else {
             // uncomment
             cursor.movePosition(QTextCursor::StartOfLine);
-            int index = lineText.indexOf(prefix);
-            cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, index);
-            int n = lineText.trimmed().startsWith(insertPrefix) ? insertPrefix.length()
-                                                                : prefix.length();
-            cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, n);
+            auto index = lineText.indexOf(prefix);
+            cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor,
+                                static_cast<int>(index));
+            auto n = lineText.trimmed().startsWith(insertPrefix) ? insertPrefix.length()
+                                                                 : prefix.length();
+            cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, static_cast<int>(n));
             if (i == originBlock && index <= originPosInBlock) {
                 movement = insertPrefix.length();
             }
@@ -457,7 +458,7 @@ void CodeEditWidget::onToggleComment() {
     if (comment) {
         cursor.movePosition(QTextCursor::NextBlock);
     } else {
-        cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, movement);
+        cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, static_cast<int>(movement));
     }
     setTextCursor(cursor);
 }
