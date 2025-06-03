@@ -24,7 +24,7 @@ Optional dependencies include:
 - `clangd`, `pylsp`: Language Server Protocol support
 - `requests` and `BeautifulSoup` libraries in Python: OpenJudge remote support
 
-## Building
+### Building
 
 1. Clone the repository:
 
