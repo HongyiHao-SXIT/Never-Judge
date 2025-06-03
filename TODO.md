@@ -11,3 +11,4 @@
 - [x] 语法解析高亮 (参考库 [tree-sitter](https://tree-sitter.github.io/tree-sitter/))
 - [x] 括号配对高亮 (完成一半，现有架构难实现)
 - [x] LSP 有关支持
+- [x] AI 助手
