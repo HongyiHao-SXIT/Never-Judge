@@ -49,14 +49,14 @@ Optional dependencies include:
 
 - [x] Dynamic detection on code modification
 - [x] Icon bar menu
-- [x] Preferrence settings
+- [x] Preference settings
 - [x] Openjudge remote and personalization
 - [x] Feedback after submissions
 - [x] Code running config
 - [x] Deepseek Coder AI assistant
 - [x] Syntax highlighting (supported by [tree-sitter](https://tree-sitter.github.io/tree-sitter/))
 - [x] Bracket matching highlighting (partially implemented, difficult to achieve with current architecture) and quick comment
-- [x] Advanced coding analyse with Language Server Procotols (supported by [Clangd](https://clangd.llvm.org/) and [PyLSP](https://github.com/python-lsp/python-lsp-server))
+- [x] Advanced coding analyses with Language Server Protocols (supported by [Clangd](https://clangd.llvm.org/) and [PyLSP](https://github.com/python-lsp/python-lsp-server))
 
 ## Documentation
 
