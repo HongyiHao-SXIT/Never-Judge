@@ -24,8 +24,8 @@ public:
     template<class T>
     using WebResponse = QCoro::Task<std::expected<T, QString>>;
 
-    WebResponse<QByteArray> get(const QUrl &url);
-    WebResponse<QByteArray> post(const QUrl &url, QMap<QString, QString> params);
+    WebResponse<QByteArray> get(const QUrl &url) const;
+    WebResponse<QByteArray> post(const QUrl &url, QMap<QString, QString> params) const;
 
     /** if login succeeded, return the response from OJ */
     WebResponse<QByteArray> login(const QString &email, const QString &password);

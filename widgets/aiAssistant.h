@@ -31,31 +31,6 @@ class CodeTabWidget;
 class AIAssistantWidget : public QDockWidget {
     Q_OBJECT
 
-public:
-    explicit AIAssistantWidget(CodeTabWidget *codeTab, QWidget *parent = nullptr);
-    ~AIAssistantWidget() override;
-
-    void setUserCode(const QString &code) const;
-
-    // Display current problem information
-    void showCurrentProblemInfo();
-
-private slots:
-    void onSendClicked() const;
-    void onAnalyzeClicked();
-    void onCodeClicked();
-    void onDebugClicked();
-    void onClearClicked() const;
-    void onInsertCodeClicked();
-    void onSetApiKeyClicked();
-    void onShowProblemClicked();
-    void onMessageAdded(const AIMessage &message);
-    void onRequestCompleted(bool success, const QString &response);
-    void onTextChanged() const;
-    // Actively get problem information
-    bool tryGetProblemInfo();
-
-private:
     void setup();
     void connectSignals();
     void displayMessage(const AIMessage &message);
@@ -68,14 +43,13 @@ private:
     QCoro::Task<bool> getProblemInfoFromUrl(const QUrl &url);
     QString getFullProblemDescription() const;
 
-    // Helper function to send AI request
-    static void sendAIRequest(const QString &prompt, const QString &requestType);
+    /** Helper function to send AI request */
+    static QCoro::Task<> sendAIRequest(const QString &prompt, const QString &requestType);
 
-    // Debug logging helper functions
+    /** Debug logging helper functions */
     static void logDebug(const QString &message);
     void logCurrentProblemInfo() const;
 
-    // UI components
     QWidget *mainWidget = nullptr;
     QVBoxLayout *mainLayout = nullptr;
     QHBoxLayout *buttonLayout = nullptr;
@@ -94,12 +68,33 @@ private:
     QPushButton *setApiKeyButton = nullptr;
     QProgressBar *progressBar = nullptr;
 
-    // Data members
     CodeTabWidget *codeTab = nullptr;
     OJProblemDetail problem;
     QString currentUserCode;
     QString generatedCode;
     QString historyMarkdown;
+
+private slots:
+    QCoro::Task<> onSendClicked() const;
+    QCoro::Task<> onAnalyzeClicked();
+    QCoro::Task<> onCodeClicked();
+    QCoro::Task<> onDebugClicked();
+    void onClearClicked() const;
+    void onInsertCodeClicked();
+    void onSetApiKeyClicked();
+    void onShowProblemClicked();
+    void onMessageAdded(const AIMessage &message);
+    void onRequestCompleted(bool success, const QString &response);
+    void onTextChanged() const;
+    // Actively get problem information
+    bool tryGetProblemInfo();
+
+public:
+    explicit AIAssistantWidget(CodeTabWidget *codeTab, QWidget *parent = nullptr);
+    ~AIAssistantWidget() override;
+    void setUserCode(const QString &code) const;
+    // Display current problem information
+    void showCurrentProblemInfo();
 };
 
 #endif // AI_ASSISTANT_H

@@ -11,15 +11,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig REQUIRED)
 # NOTE: We use tree-sitter-c/cpp/python here
-# cross-platform
-if (APPLE)
-    set(TREE_SITTER_INCLUDE_DIR /opt/homebrew/include)
-    set(TREE_SITTER_LIBRARIES /opt/homebrew/lib/libtree-sitter.a)
-    include_directories(${TREE_SITTER_INCLUDE_DIR})
-    link_directories(/opt/homebrew/lib)
-elseif(UNIX)
-    pkg_check_modules(TREE_SITTER REQUIRED tree-sitter)
-endif()
+# temporary code for my teammate
+#if (APPLE)
+#    set(TREE_SITTER_INCLUDE_DIR /opt/homebrew/include)
+#    set(TREE_SITTER_LIBRARIES /opt/homebrew/lib/libtree-sitter.a)
+#    include_directories(${TREE_SITTER_INCLUDE_DIR})
+#    link_directories(/opt/homebrew/lib)
+#elseif(UNIX)
+pkg_check_modules(TREE_SITTER REQUIRED tree-sitter)
+#endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Svg Network)
 find_package(QTermWidget6 REQUIRED)

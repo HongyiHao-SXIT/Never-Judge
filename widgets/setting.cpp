@@ -130,7 +130,7 @@ public:
         auto *cmdGroup = new QGroupBox(tr("运行命令"), this);
         auto *cmdLayout = new QVBoxLayout(cmdGroup);
 
-        auto *helpButton = new QLabel("悬停以查看预定义宏", this);
+        auto *helpButton = new QLabel(tr("悬停以查看预定义宏"), this);
         helpButton->setStyleSheet("font-style: italic; color: gray;");
         helpButton->setToolTip(tr("$dir 表示文件所在文件夹\n"
                                   "$filename 表示文件名\n"

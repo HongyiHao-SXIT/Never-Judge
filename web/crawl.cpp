@@ -97,7 +97,7 @@ bool Crawler::hasLogin() const { return !email.isEmpty() && !password.isEmpty();
 /* TODO: I know this implement is foolish
  * So fix the network manager later */
 
-Crawler::WebResponse<QByteArray> Crawler::get(const QUrl &url) {
+Crawler::WebResponse<QByteArray> Crawler::get(const QUrl &url) const {
     QStringList args = {"-u", url.toString()};
 
     if (hasLogin()) {
@@ -113,7 +113,7 @@ Crawler::WebResponse<QByteArray> Crawler::get(const QUrl &url) {
 }
 
 
-Crawler::WebResponse<QByteArray> Crawler::post(const QUrl &url, QMap<QString, QString> params) {
+Crawler::WebResponse<QByteArray> Crawler::post(const QUrl &url, QMap<QString, QString> params) const {
 
     QStringList args = {"-u", url.toString(), "-m", "post"};
 

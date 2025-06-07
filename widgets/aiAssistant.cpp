@@ -180,17 +180,18 @@ void AIAssistantWidget::setProgressVisible(bool visible) const {
 
 void AIAssistantWidget::setUserCode(const QString &code) const { userInput->setPlainText(code); }
 
-void AIAssistantWidget::onSendClicked() const {
+QCoro::Task<> AIAssistantWidget::onSendClicked() const {
     QString message = userInput->toPlainText().trimmed();
     if (message.isEmpty()) {
-        return;
+        co_return;
     }
 
     AIChatManager::getInstance().addMessage(AIMessageType::USER, message);
 
     userInput->clear();
     setProgressVisible(true);
-    sendAIRequest(message, "user information");
+    co_await sendAIRequest(message, "user information");
+    co_return;
 }
 
 void AIAssistantWidget::onClearClicked() const {
@@ -223,13 +224,13 @@ bool AIAssistantWidget::tryGetProblemInfo() {
     return true;
 }
 
-void AIAssistantWidget::onAnalyzeClicked() {
+QCoro::Task<> AIAssistantWidget::onAnalyzeClicked() {
     tryGetProblemInfo();
 
     if (problem.title.isEmpty() || problem.description.isEmpty()) {
         logDebug("Problem information incomplete, cannot generate analysis");
         QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
-        return;
+        co_return;
     }
 
     QString fullDescription = getFullProblemDescription();
@@ -243,39 +244,41 @@ void AIAssistantWidget::onAnalyzeClicked() {
     AIChatManager::getInstance().addMessage(AIMessageType::SYSTEM, tr("正在生成题目解析..."));
 
     setProgressVisible(true);
-    sendAIRequest(prompt, "题目解析");
+    co_await sendAIRequest(prompt, "题目解析");
+    co_return;
 }
 
-void AIAssistantWidget::onCodeClicked() {
+QCoro::Task<> AIAssistantWidget::onCodeClicked() {
     tryGetProblemInfo();
 
     if (problem.title.isEmpty() || problem.description.isEmpty()) {
         logDebug("Problem information incomplete, cannot generate code");
         QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
-        return;
+        co_return;
     }
 
     QString fullDescription = getFullProblemDescription();
-    QString prompt =
-            QString("用中文回答。请为以下算法题目生成一个完整、高效、易于理解的C++示例代码。代码应该：\n"
-                    "1. 包含详细的注释，解释关键步骤和算法思路\n"
-                    "2. 处理必要的边界情况\n"
-                    "3. 使用合适的数据结构和算法\n"
-                    "题目：%1\n\n%2")
-                    .arg(problem.title, fullDescription);
+    QString prompt = QString("用中文回答。请为以下算法题目生成一个完整、高效、易于理解的C++"
+                             "示例代码。代码应该：\n"
+                             "1. 包含详细的注释，解释关键步骤和算法思路\n"
+                             "2. 处理必要的边界情况\n"
+                             "3. 使用合适的数据结构和算法\n"
+                             "题目：%1\n\n%2")
+                             .arg(problem.title, fullDescription);
 
     AIChatManager::getInstance().addMessage(AIMessageType::SYSTEM, tr("正在生成示例代码..."));
 
     setProgressVisible(true);
-    sendAIRequest(prompt, "示例代码");
+    co_await sendAIRequest(prompt, "示例代码");
+    co_return;
 }
 
-void AIAssistantWidget::onDebugClicked() {
+QCoro::Task<> AIAssistantWidget::onDebugClicked() {
     QString userCode = getCurrentCode();
     if (userCode.isEmpty()) {
         logDebug("No code retrieved");
         QMessageBox::warning(this, tr("缺少代码"), tr("请先打开或编写需要调试的代码。"));
-        return;
+        co_return;
     }
 
     tryGetProblemInfo();
@@ -283,7 +286,7 @@ void AIAssistantWidget::onDebugClicked() {
     if (problem.title.isEmpty() || problem.description.isEmpty()) {
         logDebug("Problem information incomplete, cannot generate debug analysis");
         QMessageBox::warning(this, tr("缺少题目信息"), tr("请先打开一个题目或手动输入题目信息。"));
-        return;
+        co_return;
     }
 
     QString fullDescription = getFullProblemDescription();
@@ -299,7 +302,8 @@ void AIAssistantWidget::onDebugClicked() {
     AIChatManager::getInstance().addMessage(AIMessageType::USER, "请帮我调试这段代码");
 
     setProgressVisible(true);
-    sendAIRequest(prompt, "debug");
+    co_await sendAIRequest(prompt, "debug");
+    co_return;
 }
 
 void AIAssistantWidget::onShowProblemClicked() {
@@ -652,12 +656,12 @@ void AIAssistantWidget::logCurrentProblemInfo() const {
              << "characters";
 }
 
-void AIAssistantWidget::sendAIRequest(const QString &prompt, const QString &requestType) {
+QCoro::Task<> AIAssistantWidget::sendAIRequest(const QString &prompt, const QString &requestType) {
     qDebug() << "[AI Assistant Debug] Sending" << requestType
              << "request, length:" << prompt.length() << "characters";
 
     // Use synchronous method to send request
-    AIClient::getInstance().sendRequestSync(prompt);
+    co_await AIClient::getInstance().sendRequest(prompt);
 
     qDebug() << "[AI Assistant Debug]" << requestType << "request sent, waiting for callback";
 }
