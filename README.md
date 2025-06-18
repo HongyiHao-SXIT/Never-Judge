@@ -3,6 +3,8 @@
 ![NeverJudge Logo](./doc/img/logo.png)
 <p align="center">Ehh... I hate Judge! </p>
 
+![Qt6](https://img.shields.io/badge/C%2B%2B-Qt6-green) ![GitHub Stars](https://img.shields.io/github/stars/LeoDreamer2004/Never-Judge) ![GitHub License](https://img.shields.io/github/license/LeoDreamer2004/Never-Judge) ![GitHub Releases](https://img.shields.io/github/v/release/LeoDreamer2004/Never-Judge)
+
 NeverJudge is a simple code editor with Openjudge remote integration, designed for assignments of Practice of Programming in 2025 Spring.
 
 ## How to use

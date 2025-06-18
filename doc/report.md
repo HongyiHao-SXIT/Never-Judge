@@ -1,18 +1,20 @@
-# NeverJudge
+# 程序设计实习大作业报告——Never Judge
 
 ## 项目简介
 
-本项目 NeverJudge 为一个为方便 OpenJudge 提交的简单代码编辑器。项目使用 C++ Qt6 框架开发。
+本项目名为 Never Judge，是一个为方便 OpenJudge 提交的简单代码编辑器。项目使用 C++ Qt6 框架开发。
 
-我们提供了作为编辑器的基本高亮、补全和跳转定义功能，允许用户在项目文件夹下浏览任意非二进制文件。程序中集成了终端，用户可以通过配置项来设置程序的运行指令和参数。我们还设计了一个 AI 接口可视化，来帮助用户更好地使用 AI 进行代码编写和调试。本地测试完成后，我们提供了 OpenJudge 的远程提交功能，用户可以在登录后直接提交代码到 OpenJudge 上。
+作为代码编辑器，我们为这个程序设计了代码高亮、补全和跳转定义功能，允许用户在项目文件夹下浏览任意非二进制文件。程序中集成了终端，用户可以通过配置项来设置程序的运行指令和参数。我们还设计了一个 AI 接口可视化，来帮助用户更好地使用 AI 进行代码编写和调试。本地测试完成后，我们提供了 OpenJudge 的远程提交功能，用户可以在登录后直接提交代码到 OpenJudge 上。
 
 **小组分工**：
 
 - 原梓轩 2200010825 数学科学学院：项目框架搭建和绝大多数功能实现
 - 吴杰稀 2300015897 光华管理学院：OJ 个人设置功能、小组视频剪辑
-- 许畅   2300015869 信息科学与技术学院：AI 接口可视化
+- 许畅 2300015869 信息科学与技术学院：AI 接口可视化
 
-项目代码详见 [GitHub 仓库](https://github.com/LeoDreamer2004/Never-Judge)。
+项目代码详见 [GitHub 仓库](https://github.com/LeoDreamer2004/Never-Judge)，演示视频详见 [Bilibili](https://www.bilibili.com/video/BV1Wy7FzNEF3/)。
+
+![Qt6](https://img.shields.io/badge/C%2B%2B-Qt6-green) ![GitHub Stars](https://img.shields.io/github/stars/LeoDreamer2004/Never-Judge) ![GitHub License](https://img.shields.io/github/license/LeoDreamer2004/Never-Judge) ![GitHub Releases](https://img.shields.io/github/v/release/LeoDreamer2004/Never-Judge)
 
 ## 构建与运行
 
@@ -50,9 +52,9 @@ cmake --build build
 
 ### 文件树
 
-![文件树](./img/file_tree.png)
+利用 `QFileSystemModel` 可以方便地展示文件树，我们借此实现了一个简单的文件浏览器。效果详见下方的配置文件配图。
 
-利用 `QFileSystemModel` 可以方便地展示文件树，我们借此实现了一个简单的文件浏览器。用户可以在文件树中浏览任意文件，点击文件后会在右侧的编辑器中打开该文件。我们也提供了一个右键菜单，可以创建、打开、删除和重命名文件，并给这些操作绑定了快捷键。
+用户可以在文件树中浏览任意文件，点击文件后会在右侧的编辑器中打开该文件。我们也提供了一个右键菜单，可以创建、打开、删除和重命名文件，并给这些操作绑定了快捷键。
 
 ### 终端集成
 
@@ -68,7 +70,7 @@ cmake --build build
 - `$filename`: 当前文件名
 - `$filenameNoExt`: 当前文件名（不含扩展名）
 
-以 Python 配置为例: `cd $dir && python $filename`, 即可在当前文件目录下运行 Python 文件。
+以 Python 配置为例: `cd $dir && python $filename`, 即可在当前文件目录下运行 Python 文件，实质上在终端执行的指令如下所示。
 
 ![代码运行](./img/code_running.png)
 
@@ -92,7 +94,7 @@ cmake --build build
 
 ![代码高亮](./img/code_highlight.png)
 
-代码高亮功能基于 [tree-sitter](https://tree-sitter.github.io/tree-sitter/) 实现, 支持 C/C++、Python 语言，且代码扩展性好，依赖安装完成后即可简单调整代码支持其它语言。其中语义高亮规则完全可自定义，请参考默认配置文件。例如：
+代码高亮功能基于 [tree-sitter](https://tree-sitter.github.io/tree-sitter/) 实现, 支持 C/C++、Python 语言，且代码扩展性好，依赖安装完成后即可简单调整代码支持其它语言。其中语义高亮规则完全可自定义，请参考 [默认配置文件](../res/setting/settings.json) 的 `highlightRules` 的表项。例如如下的配置项即可实现注释高亮为绿色斜体：
 
 ```json
  {
@@ -102,13 +104,11 @@ cmake --build build
 }
 ```
 
-配置项即可实现注释高亮为绿色斜体。
-
-我们大致上支持了括号匹配，自动匹配并高亮对应的括号对。跨行的括号匹配在现有架构上不能保证完全正确。
+我们支持了括号匹配，可以自动匹配并高亮对应的括号对。囿于架构所限和性能考虑，跨行的括号匹配不能保证完全正确。
 
 我们支持快捷注释和取消注释功能，即一般 IDE 常用的 `Ctrl+/` 快捷键。注释和取消注释会根据当前语言的语法规则自动添加或删除注释符号。
 
-我们还实现了基于语言服务器协议 (Language Server Protocol, LSP) 的代码智能服务。LSP 是一个对一般语言都通用的协议，只不过不同语言需要不同的服务器实现。我们采用的是 [Clangd](https://clangd.llvm.org/)(C++) 和 [PyLSP](https://github.com/python-lsp/python-lsp-server)(Python)。依然保持着良好的代码扩展性。
+我们还实现了基于 **语言服务器协议 (Language Server Protocol, LSP)** 的代码智能服务。LSP 是一个对一般语言都通用的协议，只不过不同语言需要不同的服务器实现。我们采用的是 [Clangd](https://clangd.llvm.org/)(C++) 和 [PyLSP](https://github.com/python-lsp/python-lsp-server)(Python)，实现上只需要继承基类，依然保持着良好的代码扩展性。
 
 LSP 允许编辑器与语言服务器通过 JSON 格式进行通信，大致类似于如下形式：
 
@@ -163,33 +163,32 @@ LSP 客户端通过与 `clangd`（C/C++）或 `pylsp`（Python）语言服务器
 
 ![AI接口](./img/ai_assistant.png)
 
-我们设计了 AI 编程助手功能，基于 DeepSeek Coder 模型，用户设置 API 后，可对当前题目进行算法思路和考点分析，生成完整可运行的示例代码，包含详细注释分析用户代码中的问题并提供修复建议，以及解答用户关于编程的各类问题
-
-AI 接口支持代码提取和插入功能，用户可以直接将 AI 生成的代码插入到编辑器中，大大提高编程效率。
+我们设计了 AI 编程助手功能，基于 DeepSeek Coder 模型，用户设置 API 后，可对当前题目进行算法思路和考点分析，生成完整可运行的示例代码，包含详细注释分析用户代码中的问题并提供修复建议，以及解答用户关于编程的各类问题。我们支持从 AI 的回答中提取代码并插入到代码中的功能，大大提高编程效率。
 
 ## 特点
 
 ### 前后端解耦
 
-项目采用了前后端解耦的设计模式：
-
-1. **UI层与逻辑层分离**：界面组件（widgets）与核心功能（ide）、网络功能（web）分别实现
-2. **数据流驱动**：使用信号槽机制实现组件间通信，避免紧耦合
-3. **模块化设计**：各功能模块可独立开发和测试
-4. **可扩展性**：新功能可以作为插件式添加，无需修改现有代码
-
-这种设计使得项目结构清晰，便于维护和扩展。
+项目采用了前后端解耦的设计模式。界面组件 (`widgets`) 与核心功能 (`ide`)、网络功能 (`web`) 分别实现，利用这种模块化设计，各功能模块可独立开发和测试。数据流驱动上，我们使用信号槽机制实现组件间通信，避免紧耦合，这种设计使得项目结构清晰，便于维护和扩展。
 
 ### 协程机制
 
 项目广泛使用了 C++20 协程机制，结合 QCoro6 库，实现了异步操作的同步写法：
 
-1. **网络请求**：使用协程处理 HTTP 请求，避免回调地狱
-2. **文件操作**：异步读写文件，不阻塞主线程
-3. **外部进程**：协程方式调用 Python 脚本，简化交互流程
-4. **UI响应**：保持界面响应性，提升用户体验
+- **网络请求**：使用协程处理 HTTP 请求，避免回调地狱
+- **文件操作**：异步读写文件，不阻塞主线程
+- **外部进程**：协程方式调用 Python 脚本，简化交互流程
 
-协程机制使得异步编程变得简单直观，代码逻辑清晰，易于理解和维护。例如，下载题目和提交代码的流程可以用顺序代码表达，而不是复杂的嵌套回调。
+通过异步操作可以防止进程阻塞，保持 UI 界面的响应性，提升用户体验。同时协程机制也使得异步编程变得简单直观，代码逻辑清晰，易于理解和维护，避免了重复的嵌套回调代码。
+
+```cpp
+QCoro::Task<void> MyClass::runProcess() {
+    something_before_process();
+    QProcess *process = new QProcess(this);
+    co_await qCoro(process).start("python", {"script.py"}); 
+    something_after_process(); // 不必用槽函数回调
+}
+```
 
 ## 总结
 
