@@ -52,15 +52,19 @@ cmake --build build
 
 ### 文件树
 
-利用 `QFileSystemModel` 可以方便地展示文件树，我们借此实现了一个简单的文件浏览器。效果详见下方的配置文件配图。
+利用 `QFileSystemModel` 可以方便地展示文件树，我们借此实现了一个简单的文件浏览器。效果详见下方的运行配置配图。
 
 用户可以在文件树中浏览任意文件，点击文件后会在右侧的编辑器中打开该文件。我们也提供了一个右键菜单，可以创建、打开、删除和重命名文件，并给这些操作绑定了快捷键。
+
+在实际实现文件选中和右键菜单时，一般是使用光标的相对位置来定位文件树的节点。
 
 ### 终端集成
 
 ![终端集成](./img/terminal.png)
 
-`QTermWidget` 提供了 Qt 的终端 API，我们把它加入到项目当中，并作为可折叠的内容嵌入到窗口内。我们在设置项中读取了当前计算机所有终端主题，用户可以根据喜好选择并进行（热）更新，终端的输入输出都可以在窗口内查看。
+`QTermWidget` 提供了 Qt 的终端 API，我们把它加入到项目当中，并作为可折叠的内容嵌入到窗口内。我们在设置项中读取了当前计算机所有终端主题，用户可以根据喜好选择并进行（热）更新，终端的输入输出都可以在窗口内查看。终端只提供一个外壳，内部的 shell 依然是用户系统的默认 shell（如 Linux 下的 bash 或 zsh，MacOS 下的 zsh）。
+
+需要注意，根据 [官方仓库](https://github.com/lxqt/qtermwidget) 的说明，`QTermWidget` 目前仅支持 Linux 和 MacOS 系统，这也是本项目仅支持这两个系统的原因。
 
 ### 运行配置
 
@@ -70,7 +74,7 @@ cmake --build build
 - `$filename`: 当前文件名
 - `$filenameNoExt`: 当前文件名（不含扩展名）
 
-以 Python 配置为例: `cd $dir && python $filename`, 即可在当前文件目录下运行 Python 文件，实质上在终端执行的指令如下所示。
+在程序运行时，编辑器会将这些宏替换为实际的值。以 Python 配置为例: `cd $dir && python $filename`, 即可在当前文件目录下运行 Python 文件，实质上在终端执行的指令如下所示：
 
 ![代码运行](./img/code_running.png)
 
@@ -78,7 +82,7 @@ cmake --build build
 
 ![OpenJudge远程](./img/oj_preview.png)
 
-我们实现了 OpenJudge 远程集成功能，用户可以：
+我们实现了 OpenJudge 远程集成功能，用户可以借助程序直接登录而无需登录网页：
 
 1. **浏览题目**：通过输入题目链接或比赛链接，可以直接在编辑器中浏览题目内容，支持对题目进行批量下载
 2. **账号登录**：支持用户账号登录，可选择是否记住账号信息
@@ -86,7 +90,7 @@ cmake --build build
 4. **代码提交**：直接在编辑器中编写代码并提交到 OpenJudge 平台
 5. **结果反馈**：实时获取提交结果（AC/WA/CE等状态）并显示反馈信息
 
-远程提交使用了自定义的爬虫系统，通过 Python 脚本与 OpenJudge 平台交互，确保提交过程安全可靠。
+远程提交使用了自定义的爬虫系统，通过 Python 脚本与 OpenJudge 平台交互（也尝试用 C++ 实现过，但爬虫的 session 和 html 解析效果都不尽人意），确保提交过程安全可靠。
 
 ![提交结果](./img/submission.png)
 
@@ -94,7 +98,7 @@ cmake --build build
 
 ![代码高亮](./img/code_highlight.png)
 
-代码高亮功能基于 [tree-sitter](https://tree-sitter.github.io/tree-sitter/) 实现, 支持 C/C++、Python 语言，且代码扩展性好，依赖安装完成后即可简单调整代码支持其它语言。其中语义高亮规则完全可自定义，请参考 [默认配置文件](../res/setting/settings.json) 的 `highlightRules` 的表项。例如如下的配置项即可实现注释高亮为绿色斜体：
+代码高亮功能基于 [tree-sitter](https://tree-sitter.github.io/tree-sitter/) 实现, 支持 C/C++、Python 语言，且代码扩展性好，依赖安装完成后即可简单调整代码支持其它语言。其中语义高亮规则完全可自定义，请参考 [默认配置文件](../res/setting/settings.json) 的 `highlightRules` 的表项。例如如下的配置项即可实现注释高亮为绿色斜体，关于 `pattern` 的语法请参考 [tree-sitter 文档](https://tree-sitter.github.io/tree-sitter/using-parsers#highlighting)。
 
 ```json
  {
@@ -173,7 +177,7 @@ LSP 客户端通过与 `clangd`（C/C++）或 `pylsp`（Python）语言服务器
 
 ### 协程机制
 
-项目广泛使用了 C++20 协程机制，结合 QCoro6 库，实现了异步操作的同步写法：
+项目广泛使用了 C++20 协程机制，结合 QCoro6 库，实现了较缓慢 IO 异步操作的同步写法：
 
 - **网络请求**：使用协程处理 HTTP 请求，避免回调地狱
 - **文件操作**：异步读写文件，不阻塞主线程
@@ -198,6 +202,6 @@ NeverJudge 是一个功能丰富的代码编辑器，集成了 OpenJudge 远程�
 
 不过，由于时间和精力有限，我们在项目中仍有一些不足之处，例如还可以支持更多一些常用的快捷键和代码 QoL 功能；代码高亮和补全功能仅支持 C++ 和 Python，且性能不够稳定；LSP 是硬编码形式，更多内容应当以插件的形式而非直接固定在程序当中；AI 助手的功能也可以进一步扩展和完善；此外，项目的 UI 设计和用户体验方面还有提升空间。
 
-我们小组作业在路演展示中以 131 票居于第一位，[展示视频](https://www.bilibili.com/video/BV1Wy7FzNEF3/) 在 Bilibili 播放过万，[GitHub 仓库](https://github.com/LeoDreamer2004/Never-Judge) 获得 30+ 星标，表明了大家对我们作业工作的认可。
+我们小组作业在路演展示中以 131 票居于第一位，[展示视频](https://www.bilibili.com/video/BV1Wy7FzNEF3/) 在 Bilibili 播放过万，[GitHub 仓库](https://github.com/LeoDreamer2004/Never-Judge) 获得 40+ 星标，表明了大家对我们作业工作的认可。
 
 通过这次小组作业，我们不仅实现了一个实用的工具，也深入理解了现代 C++ 开发的各种技术和设计模式。希望这个项目能为程序设计的同学们提供便利，帮助大家更好地完成编程任务。

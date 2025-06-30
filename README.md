@@ -1,5 +1,7 @@
 # NeverJudge
 
+[English](./README.md) | [简体中文](./doc/README-zh_cn.md)
+
 ![NeverJudge Logo](./doc/img/logo.png)
 <p align="center">Ehh... I hate Judge! </p>
 
